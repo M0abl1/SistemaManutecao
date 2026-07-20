@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Supervisor</title>
     <link rel="stylesheet" href="../css/supervisor.css">
+    <style>
+        /* Estilos adicionais para os cards do supervisor */
+        .card-demanda {
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 8px;
+        }
+        .header-demanda {
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px;
+        }
+        .protocolo { font-weight: bold; color: #1976d2; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
+        .btn-acao { border: none; border-radius: 4px; padding: 8px 12px; color: white; cursor: pointer; font-weight: bold; flex: 1; }
+        .btn-acao:hover { opacity: 0.9; }
+    </style>
 </head>
 <body>
 
@@ -57,10 +71,10 @@
                             <select id="tipoManutencao">
                                 <option value="Elétrica">Elétrica</option>
                                 <option value="Hidráulica">Hidráulica</option>
-                                <option value="patrimonio ">patrimonio</option>
-                                <option value="limpeza">limpeza</option>
-                                <option value="macenaria">macenaria</option>
-                                <option value="alvenaria">alvenaria</option>
+                                <option value="Patrimônio">Patrimônio</option>
+                                <option value="Limpeza">Limpeza</option>
+                                <option value="Marcenaria">Marcenaria</option>
+                                <option value="Alvenaria">Alvenaria</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -92,10 +106,7 @@
             
             <div class="card">
                 <h3>Lista de Protocolos Ativos</h3>
-                <table class="tabela-demandas">
-                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
-                    <tbody id="listaGeral"></tbody>
-                </table>
+                <div id="listaGeral" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
             </div>
         </section>
 
@@ -103,40 +114,28 @@
         <section id="painel-pendentes" class="secao-painel">
             <div class="card">
                 <h3>Demandas Pendentes</h3>
-                <table class="tabela-demandas">
-                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
-                    <tbody id="listaPendentes"></tbody>
-                </table>
+                <div id="listaPendentes" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
             </div>
         </section>
         
         <section id="painel-andamento" class="secao-painel">
             <div class="card">
                 <h3>Em Andamento</h3>
-                <table class="tabela-demandas">
-                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
-                    <tbody id="listaAndamento"></tbody>
-                </table>
+                <div id="listaAndamento" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
             </div>
         </section>
         
         <section id="painel-concluidas" class="secao-painel">
             <div class="card">
                 <h3>Concluídas</h3>
-                <table class="tabela-demandas">
-                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
-                    <tbody id="listaConcluidas"></tbody>
-                </table>
+                <div id="listaConcluidas" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
             </div>
         </section>
         
         <section id="painel-canceladas" class="secao-painel">
             <div class="card">
                 <h3>Canceladas</h3>
-                <table class="tabela-demandas">
-                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
-                    <tbody id="listaCanceladas"></tbody>
-                </table>
+                <div id="listaCanceladas" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;"></div>
             </div>
         </section>
 
@@ -166,111 +165,153 @@
         </section>
     </main>
 
-    <!-- CONTROLADOR E SCRIPTS ENGINE -->
+    <!-- SCRIPT DO SUPERVISOR -->
     <script type="module">
-        import { SupervisorController } from '../src/controllers/supervisorController.js';
-        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const btnToggle = document.getElementById('btnToggleSidebar');
-        const sidebar = document.getElementById('sidebar');
-        const conteudo = document.getElementById('conteudoPrincipal');
-        const menuItems = document.querySelectorAll('.menu-item');
-        const secoes = document.querySelectorAll('.secao-painel');
-        const tituloPagina = document.getElementById('tituloPagina');
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNGjgWUVyjnglM57IiRkhbTyH3BsQVo-w",
+            authDomain: "manutencaoseduc-33d37.firebaseapp.com",
+            projectId: "manutencaoseduc-33d37",
+            storageBucket: "manutencaoseduc-33d37.firebasestorage.app",
+            messagingSenderId: "818235006427",
+            appId: "1:818235006427:web:a9ea93ea0bd0dcf1741bfe",
+            measurementId: "G-99YVZE30RF"
+        };
 
-        const auth = getAuth();
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = '../index.html'; 
-            }
+        // NAVEGAÇÃO ENTRE ABAS
+        document.querySelectorAll('.menu-item[data-alvo]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('ativo'));
+                e.currentTarget.classList.add('ativo');
+                document.querySelectorAll('.secao-painel').forEach(s => s.classList.remove('ativa'));
+                document.getElementById(`painel-${e.currentTarget.dataset.alvo}`).classList.add('ativa');
+                document.getElementById('tituloPagina').innerText = e.currentTarget.innerText;
+            });
         });
 
-        btnToggle.addEventListener('click', () => {
-            if (window.innerWidth > 768) { 
-                sidebar.classList.toggle('oculta'); 
-                conteudo.classList.toggle('expandido'); 
-            } else { 
-                sidebar.classList.toggle('interna-aberta'); 
-            }
+        // Toggle Sidebar Mobile
+        document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('aberto');
         });
 
-        menuItems.forEach(item => {
-            item.addEventListener('click', () => {
-                if (item.id === 'btnSair') return;
-
-                menuItems.forEach(i => i.classList.remove('ativo'));
-                item.classList.add('ativo');
-                secoes.forEach(s => s.classList.remove('ativa'));
-                
-                const alvo = item.getAttribute('data-alvo');
-                const painelAlvo = document.getElementById(`painel-${alvo}`);
-                if (painelAlvo) {
-                    painelAlvo.classList.add('ativa');
+        // 🔒 AUTENTICAÇÃO DO SUPERVISOR
+        setPersistence(auth, browserLocalPersistence).then(() => {
+            onAuthStateChanged(auth, async (user) => {
+                if (!user) {
+                    setTimeout(() => { if (!auth.currentUser) window.location.href = '../index.html'; }, 500);
+                    return;
                 }
-                
-                tituloPagina.innerText = item.innerText.replace(/[^\w\sÀ-ú]/g, '').trim();
-                
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('interna-aberta');
+                try {
+                    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                    if (userDoc.exists() && userDoc.data().cargo === 'tecnico') {
+                        alert("Acesso negado: Painel exclusivo para supervisores.");
+                        await signOut(auth);
+                        window.location.href = '../index.html';
+                        return;
+                    }
+                    inicializarTelasSupervisor();
+                } catch (error) {
+                    console.error("Alerta de leitura de regras no banco:", error);
+                    inicializarTelasSupervisor();
                 }
             });
         });
 
-        const btnSair = document.getElementById('btnSair');
-        if (btnSair) {
-            btnSair.addEventListener('click', () => {
-                if (confirm("Deseja realmente sair do painel de controle?")) {
-                    signOut(auth).catch((error) => {
-                        console.error("Erro ao efetuar logout:", error);
-                        alert("Erro ao tentar desconectar.");
-                    });
-                }
+        // RENDERIZADOR DE CARDS
+        function renderizarCard(d) {
+            let corStatus = '#f59e0b'; // Pendente
+            if (d.status === 'Em Andamento') corStatus = '#3b82f6';
+            if (d.status === 'Concluído') corStatus = '#10b981';
+            if (d.status === 'Cancelado') corStatus = '#ef4444';
+
+            let prazoTexto = d.prazo_limite || "Não definido";
+
+            return `
+                <div class="card-demanda">
+                    <div class="header-demanda">
+                        <span class="protocolo">#${d.protocolo}</span>
+                        <span class="badge" style="background: ${corStatus}">${d.status}</span>
+                    </div>
+                    <div><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
+                    <div><b>Instituição:</b> ${d.unidade_atendida || 'Não informada'}</div>
+                    <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
+                    <div style="color: #666;"><b>Data:</b> ${prazoTexto}</div>
+                    
+                    <div style="margin-top: 10px;"><b>Relato Original:</b> ${d.descricao || 'Sem observações iniciais.'}</div>
+                    
+                    <!-- 🟢 PARECER DO TÉCNICO -->
+                    <div style="margin-top: 12px; padding: 12px; background: #f0f4f8; border-left: 4px solid #1976d2; border-radius: 4px;">
+                        <b style="color: #1976d2;">📋 Parecer do Técnico:</b><br>
+                        <span style="font-size: 14px; color: #333;">
+                            ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: #888;">Nenhum relato técnico registrado até o momento.</i>'}
+                        </span>
+                    </div>
+                    
+                    <!-- 🟢 CONTROLES DO SUPERVISOR -->
+                    <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
+                        <button class="btn-acao" style="background: #3b82f6;" onclick="mudarStatusOs('${d.id}', 'Em Andamento')">Em Andamento</button>
+                        <button class="btn-acao" style="background: #10b981;" onclick="mudarStatusOs('${d.id}', 'Concluído')">Concluir</button>
+                        <button class="btn-acao" style="background: #ef4444;" onclick="mudarStatusOs('${d.id}', 'Cancelado')">Cancelar</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // FUNÇÃO PRINCIPAL DO SUPERVISOR
+        function inicializarTelasSupervisor() {
+            const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                let htmlGeral = '', htmlPendentes = '', htmlAndamento = '', htmlConcluidas = '', htmlCanceladas = '';
+                
+                snapshot.forEach(doc => {
+                    const dados = { id: doc.id, ...doc.data() };
+                    const cardHtml = renderizarCard(dados);
+                    
+                    htmlGeral += cardHtml;
+                    if (dados.status === 'Pendente') htmlPendentes += cardHtml;
+                    if (dados.status === 'Em Andamento') htmlAndamento += cardHtml;
+                    if (dados.status === 'Concluído') htmlConcluidas += cardHtml;
+                    if (dados.status === 'Cancelado') htmlCanceladas += cardHtml;
+                });
+
+                document.getElementById('listaGeral').innerHTML = htmlGeral || '<p>Nenhuma demanda encontrada.</p>';
+                document.getElementById('listaPendentes').innerHTML = htmlPendentes || '<p>Nenhuma demanda pendente.</p>';
+                document.getElementById('listaAndamento').innerHTML = htmlAndamento || '<p>Nenhuma demanda em andamento.</p>';
+                document.getElementById('listaConcluidas').innerHTML = htmlConcluidas || '<p>Nenhuma demanda concluída.</p>';
+                document.getElementById('listaCanceladas').innerHTML = htmlCanceladas || '<p>Nenhuma demanda cancelada.</p>';
             });
         }
 
-        const containers = {
-            geral: document.getElementById('listaGeral'),
-            pendentes: document.getElementById('listaPendentes'),
-            andamento: document.getElementById('listaAndamento'),
-            concluidas: document.getElementById('listaConcluidas'),
-            canceladas: document.getElementById('listaCanceladas'),
-            unidades: document.getElementById('corpoTabelaUnidades'),
-            selectUnidadesDemanda: document.getElementById('unidadeAtendida')
+        // MUDANÇA DE STATUS (Acesso Supervisor)
+        window.mudarStatusOs = async (idDoc, novoStatus) => {
+            const confirmar = confirm(`Tem certeza que deseja forçar o status desta OS para "${novoStatus}"?`);
+            if (!confirmar) return;
+
+            const docRef = doc(db, "demandas", idDoc);
+            try {
+                const payload = { status: novoStatus };
+                if (novoStatus === 'Concluído' || novoStatus === 'Cancelado') {
+                    payload.concluido_em = new Date().toISOString();
+                }
+                await updateDoc(docRef, payload);
+                alert(`Status atualizado pelo supervisor para: ${novoStatus}`);
+            } catch (error) {
+                console.error("Erro ao atualizar status:", error);
+                alert("Falha ao salvar dados.");
+            }
         };
 
-        const controller = new SupervisorController(containers);
-        controller.inicializarTempoReal();
-
-        document.getElementById('inputBusca').addEventListener('input', (e) => {
-            controller.definirTermoBusca(e.target.value);
-        });
-
-        // 📅 FORMATANDO O PRAZO LIMITE COM A DATA ATUAL DA SOLICITAÇÃO automaticamente
-        document.getElementById('formDemanda').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            // Captura o momento exato do clique no formato legível brasileiro
-            const dataSolicitacao = new Date().toLocaleString('pt-BR', { timeZone: 'America/Bahia' });
-
-            controller.cadastrarNovaDemanda({
-                tipo_manutencao: document.getElementById('tipoManutencao').value || "Geral",
-                unidade_atendida: document.getElementById('unidadeAtendida').value || "Não informada",
-                quem_atendido: document.getElementById('quemAtendido').value || "Não informado",
-                prioridade: document.getElementById('prioridade').value || "Média",
-                prazo_limite: `Solicitado em: ${dataSolicitacao}`, // Grava o dia e horário do clique
-                descricao: document.getElementById('descricao').value || "Sem descrição"
-            });
-            document.getElementById('formDemanda').reset();
-        });
-
-        document.getElementById('formUnidade').addEventListener('submit', (e) => {
-            e.preventDefault();
-            controller.cadastrarNovaUnidade(
-                document.getElementById('nomeUnidade').value, 
-                document.getElementById('enderecoUnidade').value
-            );
-            document.getElementById('formUnidade').reset();
+        // Logout
+        document.getElementById('btnSair').addEventListener('click', () => {
+            signOut(auth).then(() => { window.location.href = '../index.html'; });
         });
     </script>
 </body>
