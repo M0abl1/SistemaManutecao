@@ -6,15 +6,20 @@
     <title>Painel do Supervisor</title>
     <link rel="stylesheet" href="../css/supervisor.css">
     <style>
-        /* Estilos adicionais para os cards do supervisor */
+        /* Estilos adaptáveis ao Tema Claro/Escuro (Variáveis) */
         .card-demanda {
-            background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 16px;
+            background: var(--bg-card, #ffffff); 
+            border: 1px solid var(--borda, #e0e0e0); 
+            color: var(--texto-principal, #333333);
+            border-radius: 8px; padding: 16px; margin-bottom: 16px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 8px;
         }
         .header-demanda {
-            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 1px solid var(--borda, #eeeeee); 
+            padding-bottom: 8px; margin-bottom: 8px;
         }
-        .protocolo { font-weight: bold; color: #1976d2; }
+        .protocolo { font-weight: bold; color: #3b82f6; }
         .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
         .btn-acao { border: none; border-radius: 4px; padding: 8px 12px; color: white; cursor: pointer; font-weight: bold; flex: 1; }
         .btn-acao:hover { opacity: 0.9; }
@@ -35,7 +40,6 @@
             <div class="menu-item" data-alvo="canceladas"><span>❌</span> Canceladas</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
-            <!-- BOTÃO DE LOGOUT INTEGRADO -->
             <div class="menu-item" id="btnSair" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #ef4444;">
                 <span>🚪</span> Sair da Conta
             </div>
@@ -53,22 +57,21 @@
 
         <!-- BARRA DE BUSCA -->
         <div class="card" style="padding: 12px 20px;">
-            <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-principal); padding: 4px 10px; border-radius: 8px;">
+            <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-principal, #f3f4f6); padding: 4px 10px; border-radius: 8px;">
                 <span>🔍</span>
-                <input type="text" id="inputBusca" placeholder="Buscar por protocolo, tipo, unidade ou funcionário atendido..." style="border:none; background:transparent; width:100%; outline:none;">
+                <input type="text" id="inputBusca" placeholder="Buscar por protocolo, tipo, unidade ou funcionário atendido..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
             </div>
         </div>
 
         <!-- SEÇÃO: GERAL -->
         <section id="painel-geral" class="secao-painel ativa">
-            <!-- Formulário de Nova Demanda (DATA AUTOMÁTICA NO ENVIO) -->
             <div class="card">
                 <h3>Nova Solicitação de Atendimento</h3>
                 <form id="formDemanda" style="margin-top: 12px;">
                     <div class="grid-form">
                         <div class="form-group">
                             <label>Tipo da Manutenção</label>
-                            <select id="tipoManutencao">
+                            <select id="tipoManutencao" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                                 <option value="Elétrica">Elétrica</option>
                                 <option value="Hidráulica">Hidráulica</option>
                                 <option value="Patrimônio">Patrimônio</option>
@@ -79,17 +82,17 @@
                         </div>
                         <div class="form-group">
                             <label>Unidade / Setor Atendido</label>
-                            <select id="unidadeAtendida"></select>
+                            <select id="unidadeAtendida" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);"></select>
                         </div>
                         <div class="form-group">
                             <label>Quem foi Atendido</label>
-                            <input type="text" id="quemAtendido" placeholder="Ex: Sala 04 (Opcional)">
+                            <input type="text" id="quemAtendido" placeholder="Ex: Sala 04 (Opcional)" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                         </div>
                     </div>
                     <div class="grid-form">
                         <div class="form-group">
                             <label>Prioridade</label>
-                            <select id="prioridade">
+                            <select id="prioridade" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                                 <option value="Baixa">Baixa</option>
                                 <option value="Média" selected>Média</option>
                                 <option value="Alta">Alta</option>
@@ -97,7 +100,7 @@
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
                             <label>Descrição Breve</label>
-                            <input type="text" id="descricao" placeholder="Opcional">
+                            <input type="text" id="descricao" placeholder="Opcional" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                         </div>
                     </div>
                     <button type="submit" class="btn">Abrir Chamado</button>
@@ -146,21 +149,20 @@
                 <form id="formUnidade" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; align-items: end;">
                     <div class="form-group">
                         <label>Nome da Unidade</label>
-                        <input type="text" id="nomeUnidade" required>
+                        <input type="text" id="nomeUnidade" required style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                     </div>
                     <div class="form-group">
                         <label>Endereço / Localização</label>
-                        <input type="text" id="enderecoUnidade" required>
+                        <input type="text" id="enderecoUnidade" required style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                     </div>
                     <button type="submit" class="btn" style="height: 42px;">Salvar Setor</button>
                 </form>
             </div>
             <div class="card">
                 <h3>Unidades Cadastradas</h3>
-                <table class="tabela-demandas">
-                    <thead><tr><th>ID</th><th>Nome</th><th>Endereço</th></tr></thead>
-                    <tbody id="corpoTabelaUnidades"></tbody>
-                </table>
+                <div id="corpoTabelaUnidades">
+                    <!-- Tabela removida para uniformidade se necessário, mas mantive o container -->
+                </div>
             </div>
         </section>
     </main>
@@ -224,7 +226,7 @@
             });
         });
 
-        // RENDERIZADOR DE CARDS
+        // RENDERIZADOR DE CARDS (Com suporte a Dark Mode)
         function renderizarCard(d) {
             let corStatus = '#f59e0b'; // Pendente
             if (d.status === 'Em Andamento') corStatus = '#3b82f6';
@@ -242,15 +244,15 @@
                     <div><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
                     <div><b>Instituição:</b> ${d.unidade_atendida || 'Não informada'}</div>
                     <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
-                    <div style="color: #666;"><b>Data:</b> ${prazoTexto}</div>
+                    <div style="color: var(--texto-secundario, #666);"><b>Data:</b> ${prazoTexto}</div>
                     
                     <div style="margin-top: 10px;"><b>Relato Original:</b> ${d.descricao || 'Sem observações iniciais.'}</div>
                     
-                    <!-- 🟢 PARECER DO TÉCNICO -->
-                    <div style="margin-top: 12px; padding: 12px; background: #f0f4f8; border-left: 4px solid #1976d2; border-radius: 4px;">
-                        <b style="color: #1976d2;">📋 Parecer do Técnico:</b><br>
-                        <span style="font-size: 14px; color: #333;">
-                            ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: #888;">Nenhum relato técnico registrado até o momento.</i>'}
+                    <!-- 🟢 PARECER DO TÉCNICO (Fundo e texto adaptáveis) -->
+                    <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
+                        <b style="color: #3b82f6;">📋 Parecer do Técnico:</b><br>
+                        <span style="font-size: 14px; color: var(--texto-principal, #ccc);">
+                            ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: var(--texto-secundario, #888);">Nenhum relato técnico registrado até o momento.</i>'}
                         </span>
                     </div>
                     
@@ -282,11 +284,11 @@
                     if (dados.status === 'Cancelado') htmlCanceladas += cardHtml;
                 });
 
-                document.getElementById('listaGeral').innerHTML = htmlGeral || '<p>Nenhuma demanda encontrada.</p>';
-                document.getElementById('listaPendentes').innerHTML = htmlPendentes || '<p>Nenhuma demanda pendente.</p>';
-                document.getElementById('listaAndamento').innerHTML = htmlAndamento || '<p>Nenhuma demanda em andamento.</p>';
-                document.getElementById('listaConcluidas').innerHTML = htmlConcluidas || '<p>Nenhuma demanda concluída.</p>';
-                document.getElementById('listaCanceladas').innerHTML = htmlCanceladas || '<p>Nenhuma demanda cancelada.</p>';
+                document.getElementById('listaGeral').innerHTML = htmlGeral || '<p style="color: var(--texto-secundario);">Nenhuma demanda encontrada.</p>';
+                document.getElementById('listaPendentes').innerHTML = htmlPendentes || '<p style="color: var(--texto-secundario);">Nenhuma demanda pendente.</p>';
+                document.getElementById('listaAndamento').innerHTML = htmlAndamento || '<p style="color: var(--texto-secundario);">Nenhuma demanda em andamento.</p>';
+                document.getElementById('listaConcluidas').innerHTML = htmlConcluidas || '<p style="color: var(--texto-secundario);">Nenhuma demanda concluída.</p>';
+                document.getElementById('listaCanceladas').innerHTML = htmlCanceladas || '<p style="color: var(--texto-secundario);">Nenhuma demanda cancelada.</p>';
             });
         }
 
