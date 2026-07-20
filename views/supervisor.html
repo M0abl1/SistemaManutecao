@@ -6,7 +6,7 @@
     <title>Painel do Supervisor</title>
     <link rel="stylesheet" href="../css/supervisor.css">
     <style>
-        /* Estilos adaptáveis ao Tema Claro/Escuro (Variáveis) */
+        /* Estilos adaptáveis ao Tema Claro/Escuro */
         .card-demanda {
             background: var(--bg-card, #ffffff); 
             border: 1px solid var(--borda, #e0e0e0); 
@@ -23,11 +23,16 @@
         .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
         .btn-acao { border: none; border-radius: 4px; padding: 8px 12px; color: white; cursor: pointer; font-weight: bold; flex: 1; }
         .btn-acao:hover { opacity: 0.9; }
+        
+        /* Tabela de Unidades responsiva ao tema */
+        .tabela-unidades { width: 100%; border-collapse: collapse; margin-top: 15px; color: var(--texto-principal); }
+        .tabela-unidades th { text-align: left; padding: 10px; border-bottom: 2px solid var(--borda); }
+        .tabela-unidades td { padding: 10px; border-bottom: 1px solid var(--borda); }
     </style>
 </head>
 <body>
 
-    <!-- SIDEBAR (BARRA LATERAL) -->
+    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h3>Menu Gestão</h3>
@@ -55,7 +60,7 @@
             <h2 id="tituloPagina" style="margin: 0;">Painel Principal</h2>
         </header>
 
-        <!-- BARRA DE BUSCA -->
+        <!-- BUSCA -->
         <div class="card" style="padding: 12px 20px;">
             <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-principal, #f3f4f6); padding: 4px 10px; border-radius: 8px;">
                 <span>🔍</span>
@@ -65,6 +70,7 @@
 
         <!-- SEÇÃO: GERAL -->
         <section id="painel-geral" class="secao-painel ativa">
+            <!-- Novo Chamado -->
             <div class="card">
                 <h3>Nova Solicitação de Atendimento</h3>
                 <form id="formDemanda" style="margin-top: 12px;">
@@ -82,7 +88,9 @@
                         </div>
                         <div class="form-group">
                             <label>Unidade / Setor Atendido</label>
-                            <select id="unidadeAtendida" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);"></select>
+                            <select id="unidadeAtendida" required style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
+                                <option value="" disabled selected>Carregando unidades...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Quem foi Atendido</label>
@@ -160,17 +168,18 @@
             </div>
             <div class="card">
                 <h3>Unidades Cadastradas</h3>
-                <div id="corpoTabelaUnidades">
-                    <!-- Tabela removida para uniformidade se necessário, mas mantive o container -->
-                </div>
+                <table class="tabela-unidades">
+                    <thead><tr><th>Nome da Unidade</th><th>Endereço / Local</th></tr></thead>
+                    <tbody id="corpoTabelaUnidades"></tbody>
+                </table>
             </div>
         </section>
     </main>
 
-    <!-- SCRIPT DO SUPERVISOR -->
+    <!-- SCRIPT DO FIREBASE (Com importação do addDoc inserida) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -179,8 +188,7 @@
             projectId: "manutencaoseduc-33d37",
             storageBucket: "manutencaoseduc-33d37.firebasestorage.app",
             messagingSenderId: "818235006427",
-            appId: "1:818235006427:web:a9ea93ea0bd0dcf1741bfe",
-            measurementId: "G-99YVZE30RF"
+            appId: "1:818235006427:web:a9ea93ea0bd0dcf1741bfe"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -198,12 +206,11 @@
             });
         });
 
-        // Toggle Sidebar Mobile
         document.getElementById('btnToggleSidebar').addEventListener('click', () => {
             document.getElementById('sidebar').classList.toggle('aberto');
         });
 
-        // 🔒 AUTENTICAÇÃO DO SUPERVISOR
+        // 🔒 AUTENTICAÇÃO
         setPersistence(auth, browserLocalPersistence).then(() => {
             onAuthStateChanged(auth, async (user) => {
                 if (!user) {
@@ -218,22 +225,114 @@
                         window.location.href = '../index.html';
                         return;
                     }
+                    // Inicia a carga de dados
                     inicializarTelasSupervisor();
+                    inicializarUnidades();
                 } catch (error) {
-                    console.error("Alerta de leitura de regras no banco:", error);
+                    console.error("Alerta de leitura no banco:", error);
                     inicializarTelasSupervisor();
+                    inicializarUnidades();
                 }
             });
         });
 
-        // RENDERIZADOR DE CARDS (Com suporte a Dark Mode)
+        // 🟢 CARREGAR UNIDADES
+        function inicializarUnidades() {
+            const q = query(collection(db, "unidades"));
+            onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('corpoTabelaUnidades');
+                const select = document.getElementById('unidadeAtendida');
+                
+                let htmlTabela = '';
+                let htmlSelect = '<option value="" disabled selected>Selecione a unidade...</option>';
+
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    htmlTabela += `
+                        <tr>
+                            <td><b>${d.nome}</b></td>
+                            <td>${d.endereco || '-'}</td>
+                        </tr>
+                    `;
+                    htmlSelect += `<option value="${d.nome}">${d.nome}</option>`;
+                });
+
+                if (container) container.innerHTML = htmlTabela || '<tr><td colspan="2" style="text-align:center;">Nenhuma unidade cadastrada.</td></tr>';
+                if (select) select.innerHTML = htmlSelect;
+            });
+        }
+
+        // 🟢 SALVAR NOVA UNIDADE
+        document.getElementById('formUnidade').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('nomeUnidade').value.trim();
+            const endereco = document.getElementById('enderecoUnidade').value.trim();
+
+            try {
+                await addDoc(collection(db, "unidades"), {
+                    nome: nome,
+                    endereco: endereco,
+                    criado_em: new Date().toISOString()
+                });
+                alert("Unidade cadastrada com sucesso!");
+                e.target.reset();
+            } catch (error) {
+                console.error(error);
+                alert("Falha ao salvar a unidade no banco de dados.");
+            }
+        });
+
+        // 🟢 ABRIR NOVO CHAMADO (Demanda)
+        document.getElementById('formDemanda').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                // Gera um protocolo numérico aleatório de 6 dígitos
+                const protocolo = Math.floor(100000 + Math.random() * 900000).toString();
+                
+                const payload = {
+                    protocolo: protocolo,
+                    tipo_manutencao: document.getElementById('tipoManutencao').value,
+                    unidade_atendida: document.getElementById('unidadeAtendida').value,
+                    quem_atendido: document.getElementById('quemAtendido').value,
+                    prioridade: document.getElementById('prioridade').value,
+                    descricao: document.getElementById('descricao').value,
+                    status: "Pendente",
+                    prazo_limite: new Date().toISOString(),
+                    observacao_tecnico: ""
+                };
+
+                await addDoc(collection(db, "demandas"), payload);
+                alert(`Chamado aberto com sucesso! Protocolo gerado: #${protocolo}`);
+                e.target.reset();
+                
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao abrir o chamado.");
+            }
+        });
+
+        // 🟢 RENDERIZAR CARDS DE DEMANDAS
         function renderizarCard(d) {
-            let corStatus = '#f59e0b'; // Pendente
+            let corStatus = '#f59e0b';
             if (d.status === 'Em Andamento') corStatus = '#3b82f6';
             if (d.status === 'Concluído') corStatus = '#10b981';
             if (d.status === 'Cancelado') corStatus = '#ef4444';
 
-            let prazoTexto = d.prazo_limite || "Não definido";
+let prazoTexto = "Não definido";
+if (d.prazo_limite) {
+    if (d.prazo_limite.includes("Solicitado em")) {
+        // Se já for um texto legado, remove a palavra e mostra só a data
+        prazoTexto = d.prazo_limite.replace("Solicitado em:", "").trim();
+    } else {
+        // Se for o formato novo (ISO), converte para o formato brasileiro
+        const dataConvertida = new Date(d.prazo_limite);
+        if (!isNaN(dataConvertida)) {
+            prazoTexto = dataConvertida.toLocaleString('pt-BR');
+        } else {
+            prazoTexto = d.prazo_limite; // Se tudo falhar, exibe o texto puro
+        }
+    }
+}
 
             return `
                 <div class="card-demanda">
@@ -244,21 +343,19 @@
                     <div><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
                     <div><b>Instituição:</b> ${d.unidade_atendida || 'Não informada'}</div>
                     <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
-                    <div style="color: var(--texto-secundario, #666);"><b>Data:</b> ${prazoTexto}</div>
+                    <div style="color: var(--texto-secundario, #666);"><b>Data de Abertura:</b> ${prazoTexto}</div>
                     
                     <div style="margin-top: 10px;"><b>Relato Original:</b> ${d.descricao || 'Sem observações iniciais.'}</div>
                     
-                    <!-- 🟢 PARECER DO TÉCNICO (Fundo e texto adaptáveis) -->
                     <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
                         <b style="color: #3b82f6;">📋 Parecer do Técnico:</b><br>
                         <span style="font-size: 14px; color: var(--texto-principal, #ccc);">
-                            ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: var(--texto-secundario, #888);">Nenhum relato técnico registrado até o momento.</i>'}
+                            ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: var(--texto-secundario, #888);">Nenhum relato técnico registrado.</i>'}
                         </span>
                     </div>
                     
-                    <!-- 🟢 CONTROLES DO SUPERVISOR -->
                     <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
-                        <button class="btn-acao" style="background: #3b82f6;" onclick="mudarStatusOs('${d.id}', 'Em Andamento')">Em Andamento</button>
+                        <button class="btn-acao" style="background: #3b82f6;" onclick="mudarStatusOs('${d.id}', 'Em Andamento')">Andamento</button>
                         <button class="btn-acao" style="background: #10b981;" onclick="mudarStatusOs('${d.id}', 'Concluído')">Concluir</button>
                         <button class="btn-acao" style="background: #ef4444;" onclick="mudarStatusOs('${d.id}', 'Cancelado')">Cancelar</button>
                     </div>
@@ -266,7 +363,7 @@
             `;
         }
 
-        // FUNÇÃO PRINCIPAL DO SUPERVISOR
+        // 🟢 CARREGAR DEMANDAS
         function inicializarTelasSupervisor() {
             const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));
             
@@ -292,7 +389,7 @@
             });
         }
 
-        // MUDANÇA DE STATUS (Acesso Supervisor)
+        // 🟢 MUDAR STATUS
         window.mudarStatusOs = async (idDoc, novoStatus) => {
             const confirmar = confirm(`Tem certeza que deseja forçar o status desta OS para "${novoStatus}"?`);
             if (!confirmar) return;
@@ -310,7 +407,24 @@
                 alert("Falha ao salvar dados.");
             }
         };
+        // 🟢 BARRA DE PESQUISA EM TEMPO REAL
+        document.getElementById('inputBusca').addEventListener('input', (e) => {
+            const termoBusca = e.target.value.toLowerCase();
+            // Pega todos os cards de demanda gerados na tela
+            const cards = document.querySelectorAll('.card-demanda');
 
+            cards.forEach(card => {
+                // Pega todo o texto dentro do card (protocolo, nome, unidade, status)
+                const textoCard = card.innerText.toLowerCase();
+                
+                // Se o texto digitado existir no card, ele aparece. Se não, ele se esconde.
+                if (textoCard.includes(termoBusca)) {
+                    card.style.display = 'flex'; // Mantém o layout flexível do CSS
+                } else {
+                    card.style.display = 'none'; // Oculta o card
+                }
+            });
+        });
         // Logout
         document.getElementById('btnSair').addEventListener('click', () => {
             signOut(auth).then(() => { window.location.href = '../index.html'; });
