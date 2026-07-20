@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Demandas</title>
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="logo-area">
+            <h2>Controle de Demandas</h2>
+            <p>Painel Interno de Manutenção</p>
+        </div>
+
+        <button class="btn-google" id="btnLogin">
+            <!-- SVG do Google omitido aqui para fins de espaço, mantenha o mesmo -->
+            Entrar com o Google
+        </button>
+
+        <div class="status-message" id="statusMessage"></div>
+    </div>
+
+<script type="module">
+    // IMPORTANTE: Remova o "../" do início se ele existir, pois a pasta src está ao lado do index.html agora!
+    import { LoginController } from './src/controllers/loginController.js';
+
+    const btnLogin = document.getElementById('btnLogin');
+        const msgDiv = document.getElementById('statusMessage');
+
+        // Contrato da View para o Controller usar (Manipulação de interface)
+        const viewActions = {
+            limparMensagens: () => { msgDiv.style.display = 'none'; },
+            bloquearBotaoLogin: () => { btnLogin.style.display = 'none'; },
+            exibirMensagemEspera: (texto) => {
+                msgDiv.innerText = texto;
+                msgDiv.style.display = 'block';
+                msgDiv.style.background = 'rgba(217, 119, 6, 0.1)';
+                msgDiv.style.color = 'var(--status-andamento)';
+                msgDiv.style.border = '1px solid var(--status-andamento)';
+            },
+            exibirMensagemErro: (texto) => {
+                msgDiv.innerText = texto;
+                msgDiv.style.display = 'block';
+                msgDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+                msgDiv.style.color = '#ef4444';
+                msgDiv.style.border = '1px solid #ef4444';
+            }
+        };
+
+        // Inicializa o Controller passando a interface de ações da View
+        const controller = new LoginController(viewActions);
+
+        btnLogin.addEventListener('click', () => controller.iniciarFluxoLogin());
+    </script>
+</body>
+</html>

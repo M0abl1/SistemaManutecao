@@ -1,0 +1,173 @@
+/* --- DESIGN SYSTEM ADAPTÁVEL AO TEMA DO SMARTPHONE --- */
+:root {
+    --bg-principal: #f3f4f6;
+    --bg-card: #ffffff;
+    --texto-principal: #1f2937;
+    --texto-secundario: #4b5563;
+    --borda: #e5e7eb;
+    --primaria: #2563eb;
+    
+    --status-pendente: #3b82f6;
+    --status-andamento: #f59e0b;
+    --status-concluido: #10b981;
+    --status-cancelado: #ef4444;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-principal: #0f172a;
+        --bg-card: #1e293b;
+        --texto-principal: #f9fafb;
+        --texto-secundario: #9ca3af;
+        --borda: #334155;
+        --primaria: #38bdf8;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+    background-color: var(--bg-principal);
+    color: var(--texto-principal);
+    padding: 12px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Cabeçalho Superior */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--borda);
+}
+
+.btn-sair {
+    background: transparent;
+    border: 1px solid var(--borda);
+    color: var(--texto-secundario);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+.btn-sair:hover {
+    background: var(--bg-principal);
+}
+
+/* Card de Demanda Individual */
+.card-demanda {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    animation: surgimento 0.3s ease-out forwards;
+}
+
+@keyframes surgimento {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.header-demanda {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--borda);
+    padding-bottom: 10px;
+}
+
+.protocolo {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--primaria);
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+}
+
+.detalhe {
+    font-size: 15px;
+    margin-bottom: 8px;
+    color: var(--texto-secundario);
+    line-height: 1.4;
+}
+
+.detalhe b {
+    color: var(--texto-principal);
+}
+
+.caixa-descricao {
+    background: var(--bg-principal);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+    border-left: 4px solid var(--primaria);
+    line-height: 1.5;
+}
+
+/* Campo de texto de Observação */
+.observacao-box {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--bg-principal);
+    color: var(--texto-principal);
+    border: 1px solid var(--borda);
+    margin-top: 14px;
+    resize: none;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.observacao-box:focus {
+    border-color: var(--primaria);
+}
+
+/* Grade de Botões de Ação para Dedos (Mobile-First) */
+.acoes-grupo {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.btn-acao {
+    border: none;
+    padding: 12px 8px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: filter 0.2s, transform 0.1s;
+}
+.btn-acao:hover { filter: brightness(0.9); }
+.btn-acao:active { transform: scale(0.98); }

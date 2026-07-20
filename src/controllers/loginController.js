@@ -1,0 +1,67 @@
+import { AuthModel } from '../models/authModel.js';
+import { Logger } from '../infra/logger.js';
+
+export class LoginController {
+    constructor(view) {
+        this.view = view;
+        this.authModel = new AuthModel();
+    }
+
+    async iniciarFluxoLogin() {
+        this.view.limparMensagens();
+        Logger.info('LoginController.iniciarFluxoLogin', 'Clique de login detectado');
+
+        try {
+            const usuarioLogado = await this.authModel.autenticarComGoogle();
+            let perfil = await this.authModel.obterPerfilUsuario(usuarioLogado.uid);
+
+            // 1. SE O PERFIL NÃO EXISTIR (Conta nova do outro aparelho):
+            if (!perfil) {
+                Logger.info('LoginController.iniciarFluxoLogin', 'Usuário novo detectado. Criando perfil direto como técnico...');
+                
+                // Dados básicos para o auto-cadastro
+                const dadosNovos = {
+                    uid: usuarioLogado.uid,
+                    nome: usuarioLogado.displayName || "Novo Técnico",
+                    email: usuarioLogado.email,
+                    cargo: "tecnico" // 🟢 MUDADO AQUI: Entra direto como técnico, sem ficar pendente
+                };
+
+                // Cadastra no Firestore
+                await this.authModel.autoCadastrarUsuario(dadosNovos);
+                
+                // Atualiza a variável local para o fluxo seguir adiante
+                perfil = { cargo: "tecnico" };
+            }
+
+            // 2. REDIRECIONAMENTO IMEDIATO
+            if (perfil && (perfil.cargo === 'supervisor' || perfil.cargo === 'tecnico')) {
+                this.redirecionarPorCargo(perfil.cargo);
+                return;
+            }
+
+            // 3. FLUXO DE SEGURANÇA (Se ainda houver contas antigas marcadas como 'pendente' no banco)
+            if (perfil && perfil.cargo === 'pendente') {
+                this.view.bloquearBotaoLogin();
+                this.view.exibirMensagemEspera("Sua conta está em análise! Aguardando a supervisão liberar o seu acesso...");
+
+                this.authModel.escutarMudancaCargo(usuarioLogado.uid, (perfilAtualizado) => {
+                    Logger.info('LoginController', 'Atualização de cargo capturada em tempo real', { cargo: perfilAtualizado.cargo });
+                    if (perfilAtualizado.cargo === 'supervisor' || perfilAtualizado.cargo === 'tecnico') {
+                        this.redirecionarPorCargo(perfilAtualizado.cargo);
+                    }
+                });
+            }
+
+        } catch (error) {
+            Logger.error('LoginController.iniciarFluxoLogin', 'Interrupção no fluxo de login', error);
+            this.view.exibirMensagemErro("Ocorreu um erro no login. Verifique os logs do console.");
+        }
+    }
+
+    redirecionarPorCargo(cargo) {
+        Logger.info('LoginController.redirecionarPorCargo', `Redirecionando usuário para tela de ${cargo}`);
+        if (cargo === 'supervisor') window.location.href = 'views/supervisor.html';
+        if (cargo === 'tecnico') window.location.href = 'views/tecnico.html';
+    }
+}

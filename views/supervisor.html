@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Supervisor</title>
+    <link rel="stylesheet" href="../css/supervisor.css">
+</head>
+<body>
+
+    <!-- SIDEBAR (BARRA LATERAL) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Menu Gestão</h3>
+        </div>
+        <nav style="display: flex; flex-direction: column; flex: 1;">
+            <div class="menu-item ativo" data-alvo="geral"><span>📋</span> Painel Principal</div>
+            <div class="menu-item" data-alvo="pendentes"><span>⏳</span> Pendentes</div>
+            <div class="menu-item" data-alvo="andamento"><span>⚡</span> Em Andamento</div>
+            <div class="menu-item" data-alvo="concluidas"><span>✅</span> Concluídas</div>
+            <div class="menu-item" data-alvo="canceladas"><span>❌</span> Canceladas</div>
+            <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
+            
+            <!-- BOTÃO DE LOGOUT INTEGRADO -->
+            <div class="menu-item" id="btnSair" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #ef4444;">
+                <span>🚪</span> Sair da Conta
+            </div>
+        </nav>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="conteudo-principal" id="conteudoPrincipal">
+        <header>
+            <button class="btn-toggle" id="btnToggleSidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <h2 id="tituloPagina" style="margin: 0;">Painel Principal</h2>
+        </header>
+
+        <!-- BARRA DE BUSCA -->
+        <div class="card" style="padding: 12px 20px;">
+            <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-principal); padding: 4px 10px; border-radius: 8px;">
+                <span>🔍</span>
+                <input type="text" id="inputBusca" placeholder="Buscar por protocolo, tipo, unidade ou funcionário atendido..." style="border:none; background:transparent; width:100%; outline:none;">
+            </div>
+        </div>
+
+        <!-- SEÇÃO: GERAL -->
+        <section id="painel-geral" class="secao-painel ativa">
+            <!-- Formulário de Nova Demanda (DATA AUTOMÁTICA NO ENVIO) -->
+            <div class="card">
+                <h3>Nova Solicitação de Atendimento</h3>
+                <form id="formDemanda" style="margin-top: 12px;">
+                    <div class="grid-form">
+                        <div class="form-group">
+                            <label>Tipo da Manutenção</label>
+                            <select id="tipoManutencao">
+                                <option value="Elétrica">Elétrica</option>
+                                <option value="Hidráulica">Hidráulica</option>
+                                <option value="patrimonio ">patrimonio</option>
+                                <option value="limpeza">limpeza</option>
+                                <option value="macenaria">macenaria</option>
+                                <option value="alvenaria">alvenaria</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Unidade / Setor Atendido</label>
+                            <select id="unidadeAtendida"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quem foi Atendido</label>
+                            <input type="text" id="quemAtendido" placeholder="Ex: Sala 04 (Opcional)">
+                        </div>
+                    </div>
+                    <div class="grid-form">
+                        <div class="form-group">
+                            <label>Prioridade</label>
+                            <select id="prioridade">
+                                <option value="Baixa">Baixa</option>
+                                <option value="Média" selected>Média</option>
+                                <option value="Alta">Alta</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>Descrição Breve</label>
+                            <input type="text" id="descricao" placeholder="Opcional">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">Abrir Chamado</button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h3>Lista de Protocolos Ativos</h3>
+                <table class="tabela-demandas">
+                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
+                    <tbody id="listaGeral"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÕES DE STATUS -->
+        <section id="painel-pendentes" class="secao-painel">
+            <div class="card">
+                <h3>Demandas Pendentes</h3>
+                <table class="tabela-demandas">
+                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
+                    <tbody id="listaPendentes"></tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section id="painel-andamento" class="secao-painel">
+            <div class="card">
+                <h3>Em Andamento</h3>
+                <table class="tabela-demandas">
+                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
+                    <tbody id="listaAndamento"></tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section id="painel-concluidas" class="secao-painel">
+            <div class="card">
+                <h3>Concluídas</h3>
+                <table class="tabela-demandas">
+                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
+                    <tbody id="listaConcluidas"></tbody>
+                </table>
+            </div>
+        </section>
+        
+        <section id="painel-canceladas" class="secao-painel">
+            <div class="card">
+                <h3>Canceladas</h3>
+                <table class="tabela-demandas">
+                    <thead><tr><th>Protocolo</th><th>Tipo / Unidade</th><th>Atendido</th><th>Status</th></tr></thead>
+                    <tbody id="listaCanceladas"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: GERENCIAR UNIDADES -->
+        <section id="painel-unidades" class="secao-painel">
+            <div class="card">
+                <h3>Cadastrar Nova Unidade / Setor</h3>
+                <form id="formUnidade" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 12px; align-items: end;">
+                    <div class="form-group">
+                        <label>Nome da Unidade</label>
+                        <input type="text" id="nomeUnidade" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Endereço / Localização</label>
+                        <input type="text" id="enderecoUnidade" required>
+                    </div>
+                    <button type="submit" class="btn" style="height: 42px;">Salvar Setor</button>
+                </form>
+            </div>
+            <div class="card">
+                <h3>Unidades Cadastradas</h3>
+                <table class="tabela-demandas">
+                    <thead><tr><th>ID</th><th>Nome</th><th>Endereço</th></tr></thead>
+                    <tbody id="corpoTabelaUnidades"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- CONTROLADOR E SCRIPTS ENGINE -->
+    <script type="module">
+        import { SupervisorController } from '../src/controllers/supervisorController.js';
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const conteudo = document.getElementById('conteudoPrincipal');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const secoes = document.querySelectorAll('.secao-painel');
+        const tituloPagina = document.getElementById('tituloPagina');
+
+        const auth = getAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = '../index.html'; 
+            }
+        });
+
+        btnToggle.addEventListener('click', () => {
+            if (window.innerWidth > 768) { 
+                sidebar.classList.toggle('oculta'); 
+                conteudo.classList.toggle('expandido'); 
+            } else { 
+                sidebar.classList.toggle('interna-aberta'); 
+            }
+        });
+
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (item.id === 'btnSair') return;
+
+                menuItems.forEach(i => i.classList.remove('ativo'));
+                item.classList.add('ativo');
+                secoes.forEach(s => s.classList.remove('ativa'));
+                
+                const alvo = item.getAttribute('data-alvo');
+                const painelAlvo = document.getElementById(`painel-${alvo}`);
+                if (painelAlvo) {
+                    painelAlvo.classList.add('ativa');
+                }
+                
+                tituloPagina.innerText = item.innerText.replace(/[^\w\sÀ-ú]/g, '').trim();
+                
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('interna-aberta');
+                }
+            });
+        });
+
+        const btnSair = document.getElementById('btnSair');
+        if (btnSair) {
+            btnSair.addEventListener('click', () => {
+                if (confirm("Deseja realmente sair do painel de controle?")) {
+                    signOut(auth).catch((error) => {
+                        console.error("Erro ao efetuar logout:", error);
+                        alert("Erro ao tentar desconectar.");
+                    });
+                }
+            });
+        }
+
+        const containers = {
+            geral: document.getElementById('listaGeral'),
+            pendentes: document.getElementById('listaPendentes'),
+            andamento: document.getElementById('listaAndamento'),
+            concluidas: document.getElementById('listaConcluidas'),
+            canceladas: document.getElementById('listaCanceladas'),
+            unidades: document.getElementById('corpoTabelaUnidades'),
+            selectUnidadesDemanda: document.getElementById('unidadeAtendida')
+        };
+
+        const controller = new SupervisorController(containers);
+        controller.inicializarTempoReal();
+
+        document.getElementById('inputBusca').addEventListener('input', (e) => {
+            controller.definirTermoBusca(e.target.value);
+        });
+
+        // 📅 FORMATANDO O PRAZO LIMITE COM A DATA ATUAL DA SOLICITAÇÃO automaticamente
+        document.getElementById('formDemanda').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Captura o momento exato do clique no formato legível brasileiro
+            const dataSolicitacao = new Date().toLocaleString('pt-BR', { timeZone: 'America/Bahia' });
+
+            controller.cadastrarNovaDemanda({
+                tipo_manutencao: document.getElementById('tipoManutencao').value || "Geral",
+                unidade_atendida: document.getElementById('unidadeAtendida').value || "Não informada",
+                quem_atendido: document.getElementById('quemAtendido').value || "Não informado",
+                prioridade: document.getElementById('prioridade').value || "Média",
+                prazo_limite: `Solicitado em: ${dataSolicitacao}`, // Grava o dia e horário do clique
+                descricao: document.getElementById('descricao').value || "Sem descrição"
+            });
+            document.getElementById('formDemanda').reset();
+        });
+
+        document.getElementById('formUnidade').addEventListener('submit', (e) => {
+            e.preventDefault();
+            controller.cadastrarNovaUnidade(
+                document.getElementById('nomeUnidade').value, 
+                document.getElementById('enderecoUnidade').value
+            );
+            document.getElementById('formUnidade').reset();
+        });
+    </script>
+</body>
+</html>

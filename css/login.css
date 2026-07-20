@@ -1,0 +1,179 @@
+/* --- CONFIGURAÇÃO DE CORES E VARIÁVEIS (TEMA CLARO DEFAULT) --- */
+:root {
+    --gradiente-fundo: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --sombra-card: 0 10px 30px rgba(0, 0, 0, 0.04), 0 1px 8px rgba(0, 0, 0, 0.02);
+    --borda-card: rgba(255, 255, 255, 0.6);
+    
+    --texto-titulo: #111827;
+    --texto-corpo: #4b5563;
+    --borda-input: #e5e7eb;
+    
+    --google-bg: #ffffff;
+    --google-texto: #374151;
+    --google-borda: #e5e7eb;
+    --google-hover: #f9fafb;
+    
+    --cor-alerta: #b45309;
+    --bg-alerta: rgba(251, 191, 36, 0.12);
+    --borda-alerta: rgba(251, 191, 36, 0.3);
+    
+    --cor-erro: #b91c1c;
+    --bg-erro: rgba(239, 68, 68, 0.1);
+    --borda-erro: rgba(239, 68, 68, 0.25);
+}
+
+/* --- ADAPTAÇÃO AUTOMÁTICA PARA TEMA ESCURO --- */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --gradiente-fundo: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        --bg-card: rgba(30, 41, 59, 0.7);
+        --sombra-card: 0 20px 40px rgba(0, 0, 0, 0.3), 0 1px 10px rgba(0, 0, 0, 0.2);
+        --borda-card: rgba(255, 255, 255, 0.05);
+        
+        --texto-titulo: #f9fafb;
+        --texto-corpo: #9ca3af;
+        --borda-input: #334155;
+        
+        --google-bg: #334155;
+        --google-texto: #f3f4f6;
+        --google-borda: #475569;
+        --google-hover: #475569;
+        
+        --cor-alerta: #fbbf24;
+        --bg-alerta: rgba(245, 158, 11, 0.15);
+        --borda-alerta: rgba(245, 158, 11, 0.3);
+        
+        --cor-erro: #f87171;
+        --bg-erro: rgba(239, 68, 68, 0.15);
+        --borda-erro: rgba(239, 68, 68, 0.3);
+    }
+}
+
+/* --- RESET & ESTRUTURA BASE --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    background: var(--gradiente-fundo);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    transition: background 0.4s ease;
+}
+
+/* --- CARD DE LOGIN (Efeito Glassmorphism Sofisticado) --- */
+.login-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px); /* Desfoque do fundo do sistema */
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--borda-card);
+    padding: 48px 32px;
+    border-radius: 24px;
+    box-shadow: var(--sombra-card);
+    text-align: center;
+    max-width: 420px;
+    width: 100%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
+}
+
+/* Identidade Visual / Cabeçalho */
+.logo-area {
+    margin-bottom: 40px;
+}
+
+.logo-area h2 {
+    color: var(--texto-titulo);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+}
+
+.logo-area p {
+    color: var(--texto-corpo);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* --- BOTÃO PREMIUM DO GOOGLE --- */
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background-color: var(--google-bg);
+    color: var(--google-texto);
+    border: 1px solid var(--google-borda);
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    gap: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-google:hover {
+    background-color: var(--google-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.btn-google:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-google svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+/* --- CAIXAS DE FEEDBACK/MENSAGEM --- */
+.status-message {
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 24px;
+    display: none;
+    padding: 16px;
+    border-radius: 12px;
+    line-height: 1.5;
+    animation: surgimentoSuave 0.3s ease-out forwards;
+}
+
+/* Animação para a mensagem não aparecer cortada de vez */
+@keyframes surgimentoSuave {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- AJUSTES PARA DISPOSITIVOS BEM PEQUENOS (RESPONSIVIDADE EXTREMA) --- */
+@media (max-width: 400px) {
+    .login-card {
+        padding: 36px 20px;
+        border-radius: 20px;
+    }
+    .logo-area h2 {
+        font-size: 22px;
+    }
+    .btn-google {
+        font-size: 15px;
+        padding: 12px 16px;
+    }
+}
