@@ -33,23 +33,14 @@
 
     <!-- SCRIPT BLINDADO (Fim do Loop) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { db, auth } from '../src/config/firebase.js';
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCNGjgWUVyjnglM57IiRkhbTyH3BsQVo-w",
-            authDomain: "manutencaoseduc-33d37.firebaseapp.com",
-            projectId: "manutencaoseduc-33d37",
-            storageBucket: "manutencaoseduc-33d37.firebasestorage.app",
-            messagingSenderId: "818235006427",
-            appId: "1:818235006427:web:a9ea93ea0bd0dcf1741bfe",
-            measurementId: "G-99YVZE30RF"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        const STATUS_PERMITIDOS = new Set(['Em Andamento', 'Concluído', 'Cancelado']);
+        const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[caractere]));
 
         // Função para mostrar erro sem recarregar a página
         function mostrarErroNaTela(mensagem) {
@@ -76,18 +67,27 @@
                 if (userDoc.exists()) {
                     const dadosPerfil = userDoc.data();
                     
-                    if (dadosPerfil.cargo === 'supervisor') {
-                        mostrarErroNaTela("⛔ ACESSO BLOQUEADO.<br><br>Seu usuário está registrado no banco de dados como SUPERVISOR. Esta tela aceita apenas TÉCNICOS.");
+                    if (dadosPerfil.cargo !== 'tecnico') {
+                        mostrarErroNaTela("Acesso bloqueado: esta tela aceita apenas técnicos.");
+                        await signOut(auth);
+                        window.location.replace('../index.html');
                         return;
                     }
+                } else {
+                    mostrarErroNaTela("Acesso bloqueado: perfil de técnico não encontrado.");
+                    await signOut(auth);
+                    window.location.replace('../index.html');
+                    return;
                 }
                 
                 document.getElementById('telaErro').style.display = 'none';
                 inicializarFilaTempoReal();
 
             } catch (error) {
-                mostrarErroNaTela("⚠️ ERRO DE FIREBASE FIRESTORE:<br>" + error.message);
-                inicializarFilaTempoReal(); // Tenta carregar a fila mesmo com erro
+                console.error("Falha ao validar o perfil:", error);
+                mostrarErroNaTela("Não foi possível validar as suas permissões.");
+                await signOut(auth);
+                window.location.replace('../index.html');
             }
         });
 
@@ -121,6 +121,7 @@
                     let corStatus = 'var(--status-pendente)';
                     if(d.status === 'Em Andamento') corStatus = 'var(--status-andamento)';
 
+                    d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
                     container.innerHTML += `
                         <div class="card-demanda">
                             <div class="header-demanda">
@@ -130,18 +131,19 @@
                             <div class="detalhe"><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
                             <div class="detalhe"><b>Instituição/Unidade:</b> ${d.unidade_atendida || 'Não informada'}</div>
                             <div class="detalhe"><b>Colaborador Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
+                            <div class="detalhe"><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
                             
                             <div class="caixa-descricao">
-                                <b>Relato do Supervisor:</b><br>
+                                <b>Solicitação do Supervisor:</b><br>
                                 ${d.descricao || 'Sem observações adicionais.'}
                             </div>
                             
                             <textarea class="observacao-box" id="obs-${d.idDoc}" rows="2" placeholder="Digite aqui o parecer técnico do atendimento...">${d.observacao_tecnico || ''}</textarea>
                             
                             <div class="acoes-grupo">
-                                <button class="btn-acao" style="background: var(--status-andamento)" onclick="mudarStatusOs('${d.idDoc}', 'Em Andamento')">Iniciar</button>
-                                <button class="btn-acao" style="background: var(--status-concluido)" onclick="mudarStatusOs('${d.idDoc}', 'Concluído')">Concluir</button>
-                                <button class="btn-acao" style="background: var(--status-cancelado)" onclick="mudarStatusOs('${d.idDoc}', 'Cancelado')">Cancelar</button>
+                                <button class="btn-acao" style="background: var(--status-andamento)" data-demanda-id="${d.idDoc}" data-novo-status="Em Andamento">Iniciar</button>
+                                <button class="btn-acao" style="background: var(--status-concluido)" data-demanda-id="${d.idDoc}" data-novo-status="Concluído">Concluir</button>
+                                <button class="btn-acao" style="background: var(--status-cancelado)" data-demanda-id="${d.idDoc}" data-novo-status="Cancelado">Cancelar</button>
                             </div>
                         </div>
                     `;
@@ -151,7 +153,8 @@
             });
         }
 
-        window.mudarStatusOs = async (idDoc, novoStatus) => {
+        async function mudarStatusOs(idDoc, novoStatus) {
+            if (!STATUS_PERMITIDOS.has(novoStatus)) return;
             const txtObservacao = document.getElementById(`obs-${idDoc}`).value.trim();
             if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && txtObservacao === '') {
                 alert("Por favor, preencha a observação!");
@@ -168,7 +171,11 @@
             } catch (error) {
                 alert("Falha ao salvar dados.");
             }
-        };
+        }
+        document.addEventListener('click', (event) => {
+            const botao = event.target.closest('[data-demanda-id]');
+            if (botao) mudarStatusOs(botao.dataset.demandaId, botao.dataset.novoStatus);
+        });
 
         // Redirecionamento manual agora (apenas se o usuário clicar em Sair)
         document.getElementById('btnSair').addEventListener('click', () => {

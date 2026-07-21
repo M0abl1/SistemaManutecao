@@ -2,6 +2,10 @@ import { db } from '../config/firebase.js';
 import { collection, query, orderBy, onSnapshot, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { Logger } from '../infra/logger.js';
 
+const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'"]/g, caractere => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[caractere]));
+
 export class SupervisorController {
     constructor(viewsContainers) {
         this.containers = viewsContainers;
@@ -110,17 +114,20 @@ export class SupervisorController {
         if (this.containers.selectUnidadesDemanda) this.containers.selectUnidadesDemanda.innerHTML = '';
 
         this.todasUnidades.forEach(u => {
+            const idUnidade = escapeHtml(u.id_unidade);
+            const nomeUnidade = escapeHtml(u.nome);
+            const enderecoUnidade = escapeHtml(u.endereco);
             if (this.containers.unidades) {
                 this.containers.unidades.innerHTML += `
                     <tr>
-                        <td data-label="ID" style="font-weight: 600; color: var(--primaria)">${u.id_unidade}</td>
-                        <td data-label="Nome da Instituição"><b>${u.nome}</b></td>
-                        <td data-label="Endereço Cadastrado" style="color: var(--texto-secundario)">${u.endereco}</td>
+                        <td data-label="ID" style="font-weight: 600; color: var(--primaria)">${idUnidade}</td>
+                        <td data-label="Nome da Instituição"><b>${nomeUnidade}</b></td>
+                        <td data-label="Endereço Cadastrado" style="color: var(--texto-secundario)">${enderecoUnidade}</td>
                     </tr>
                 `;
             }
             if (this.containers.selectUnidadesDemanda) {
-                this.containers.selectUnidadesDemanda.innerHTML += `<option value="${u.nome}">[${u.id_unidade}] ${u.nome}</option>`;
+                this.containers.selectUnidadesDemanda.innerHTML += `<option value="${nomeUnidade}">[${idUnidade}] ${nomeUnidade}</option>`;
             }
         });
     }
@@ -130,6 +137,8 @@ export class SupervisorController {
     if (d.status === 'Em Andamento') cor = 'var(--status-andamento)';
     if (d.status === 'Concluído') cor = 'var(--status-concluido)';
     if (d.status === 'Cancelado') cor = 'var(--status-cancelado)';
+
+    d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
 
     // Garante que se vier vazio do banco por qualquer motivo, exibe um texto padrão amigável
     const tipo = d.tipo_manutencao || 'Geral';

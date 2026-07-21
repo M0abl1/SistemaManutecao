@@ -64,7 +64,12 @@
         <div class="card" style="padding: 12px 20px;">
             <div style="display: flex; gap: 10px; align-items: center; background: var(--bg-principal, #f3f4f6); padding: 4px 10px; border-radius: 8px;">
                 <span>🔍</span>
-                <input type="text" id="inputBusca" placeholder="Buscar por protocolo, tipo, unidade ou funcionário atendido..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
+                <select id="filtroBusca" aria-label="Filtrar busca por" style="border:none; border-right: 1px solid var(--borda); border-radius: 0; background:transparent; width:auto; padding-right:10px; color: var(--texto-principal);">
+                    <option value="todos">Todos os campos</option>
+                    <option value="protocolo">Nº do protocolo</option>
+                    <option value="tipo">Tipo de demanda</option>
+                </select>
+                <input type="search" id="inputBusca" placeholder="Digite para filtrar a listagem..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
             </div>
         </div>
 
@@ -178,22 +183,23 @@
 
     <!-- SCRIPT DO FIREBASE (Com importação do addDoc inserida) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { db, auth } from '../src/config/firebase.js';
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCNGjgWUVyjnglM57IiRkhbTyH3BsQVo-w",
-            authDomain: "manutencaoseduc-33d37.firebaseapp.com",
-            projectId: "manutencaoseduc-33d37",
-            storageBucket: "manutencaoseduc-33d37.firebasestorage.app",
-            messagingSenderId: "818235006427",
-            appId: "1:818235006427:web:a9ea93ea0bd0dcf1741bfe"
-        };
+        const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
+        const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[caractere]));
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        async function negarAcesso(mensagem) {
+            alert(mensagem);
+            try {
+                await signOut(auth);
+            } finally {
+                window.location.replace('../index.html');
+            }
+        }
 
         // NAVEGAÇÃO ENTRE ABAS
         document.querySelectorAll('.menu-item[data-alvo]').forEach(item => {
@@ -207,7 +213,7 @@
         });
 
         document.getElementById('btnToggleSidebar').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('aberto');
+            document.getElementById('sidebar').classList.toggle('interna-aberta');
         });
 
         // 🔒 AUTENTICAÇÃO
@@ -219,19 +225,16 @@
                 }
                 try {
                     const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-                    if (userDoc.exists() && userDoc.data().cargo === 'tecnico') {
-                        alert("Acesso negado: Painel exclusivo para supervisores.");
-                        await signOut(auth);
-                        window.location.href = '../index.html';
+                    if (!userDoc.exists() || userDoc.data().cargo !== 'supervisor') {
+                        await negarAcesso("Acesso negado: Painel exclusivo para supervisores.");
                         return;
                     }
                     // Inicia a carga de dados
                     inicializarTelasSupervisor();
                     inicializarUnidades();
                 } catch (error) {
-                    console.error("Alerta de leitura no banco:", error);
-                    inicializarTelasSupervisor();
-                    inicializarUnidades();
+                    console.error("Falha ao validar o perfil:", error);
+                    await negarAcesso("Não foi possível validar as suas permissões.");
                 }
             });
         });
@@ -250,11 +253,11 @@
                     const d = doc.data();
                     htmlTabela += `
                         <tr>
-                            <td><b>${d.nome}</b></td>
-                            <td>${d.endereco || '-'}</td>
+                            <td><b>${escapeHtml(d.nome)}</b></td>
+                            <td>${escapeHtml(d.endereco || '-')}</td>
                         </tr>
                     `;
-                    htmlSelect += `<option value="${d.nome}">${d.nome}</option>`;
+                    htmlSelect += `<option value="${escapeHtml(d.nome)}">${escapeHtml(d.nome)}</option>`;
                 });
 
                 if (container) container.innerHTML = htmlTabela || '<tr><td colspan="2" style="text-align:center;">Nenhuma unidade cadastrada.</td></tr>';
@@ -287,10 +290,7 @@
             e.preventDefault();
             try {
                 // Gera um protocolo numérico aleatório de 6 dígitos
-                const protocolo = Math.floor(100000 + Math.random() * 900000).toString();
-                
                 const payload = {
-                    protocolo: protocolo,
                     tipo_manutencao: document.getElementById('tipoManutencao').value,
                     unidade_atendida: document.getElementById('unidadeAtendida').value,
                     quem_atendido: document.getElementById('quemAtendido').value,
@@ -301,7 +301,14 @@
                     observacao_tecnico: ""
                 };
 
-                await addDoc(collection(db, "demandas"), payload);
+                let protocolo;
+                await runTransaction(db, async (transaction) => {
+                    const contadorRef = doc(db, 'configuracoes', 'contador_protocolo');
+                    const contadorDoc = await transaction.get(contadorRef);
+                    protocolo = contadorDoc.exists() ? Number(contadorDoc.data().ultimo_numero || 999) + 1 : 1000;
+                    transaction.set(contadorRef, { ultimo_numero: protocolo }, { merge: true });
+                    transaction.set(doc(collection(db, 'demandas')), { ...payload, protocolo });
+                });
                 alert(`Chamado aberto com sucesso! Protocolo gerado: #${protocolo}`);
                 e.target.reset();
                 
@@ -334,8 +341,11 @@ if (d.prazo_limite) {
     }
 }
 
+            d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
+            prazoTexto = escapeHtml(prazoTexto);
+
             return `
-                <div class="card-demanda">
+                <div class="card-demanda" data-protocolo="${d.protocolo}" data-tipo="${d.tipo_manutencao || 'Geral'}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
                         <span class="badge" style="background: ${corStatus}">${d.status}</span>
@@ -343,6 +353,7 @@ if (d.prazo_limite) {
                     <div><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
                     <div><b>Instituição:</b> ${d.unidade_atendida || 'Não informada'}</div>
                     <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
+                    <div><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
                     <div style="color: var(--texto-secundario, #666);"><b>Data de Abertura:</b> ${prazoTexto}</div>
                     
                     <div style="margin-top: 10px;"><b>Relato Original:</b> ${d.descricao || 'Sem observações iniciais.'}</div>
@@ -355,9 +366,9 @@ if (d.prazo_limite) {
                     </div>
                     
                     <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
-                        <button class="btn-acao" style="background: #3b82f6;" onclick="mudarStatusOs('${d.id}', 'Em Andamento')">Andamento</button>
-                        <button class="btn-acao" style="background: #10b981;" onclick="mudarStatusOs('${d.id}', 'Concluído')">Concluir</button>
-                        <button class="btn-acao" style="background: #ef4444;" onclick="mudarStatusOs('${d.id}', 'Cancelado')">Cancelar</button>
+                        <button class="btn-acao" style="background: #3b82f6;" data-demanda-id="${d.id}" data-novo-status="Em Andamento">Andamento</button>
+                        <button class="btn-acao" style="background: #10b981;" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
+                        <button class="btn-acao" style="background: #ef4444;" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
                     </div>
                 </div>
             `;
@@ -386,11 +397,13 @@ if (d.prazo_limite) {
                 document.getElementById('listaAndamento').innerHTML = htmlAndamento || '<p style="color: var(--texto-secundario);">Nenhuma demanda em andamento.</p>';
                 document.getElementById('listaConcluidas').innerHTML = htmlConcluidas || '<p style="color: var(--texto-secundario);">Nenhuma demanda concluída.</p>';
                 document.getElementById('listaCanceladas').innerHTML = htmlCanceladas || '<p style="color: var(--texto-secundario);">Nenhuma demanda cancelada.</p>';
+                aplicarFiltroBusca();
             });
         }
 
         // 🟢 MUDAR STATUS
-        window.mudarStatusOs = async (idDoc, novoStatus) => {
+        async function mudarStatusOs(idDoc, novoStatus) {
+            if (!STATUS_PERMITIDOS.has(novoStatus)) return;
             const confirmar = confirm(`Tem certeza que deseja forçar o status desta OS para "${novoStatus}"?`);
             if (!confirmar) return;
 
@@ -406,25 +419,26 @@ if (d.prazo_limite) {
                 console.error("Erro ao atualizar status:", error);
                 alert("Falha ao salvar dados.");
             }
-        };
+        }
+        document.addEventListener('click', (event) => {
+            const botao = event.target.closest('[data-demanda-id]');
+            if (botao) mudarStatusOs(botao.dataset.demandaId, botao.dataset.novoStatus);
+        });
         // 🟢 BARRA DE PESQUISA EM TEMPO REAL
-        document.getElementById('inputBusca').addEventListener('input', (e) => {
-            const termoBusca = e.target.value.toLowerCase();
-            // Pega todos os cards de demanda gerados na tela
+        function aplicarFiltroBusca() {
+            const termoBusca = document.getElementById('inputBusca').value.toLowerCase().trim();
+            const filtro = document.getElementById('filtroBusca').value;
             const cards = document.querySelectorAll('.card-demanda');
 
             cards.forEach(card => {
-                // Pega todo o texto dentro do card (protocolo, nome, unidade, status)
-                const textoCard = card.innerText.toLowerCase();
-                
-                // Se o texto digitado existir no card, ele aparece. Se não, ele se esconde.
-                if (textoCard.includes(termoBusca)) {
-                    card.style.display = 'flex'; // Mantém o layout flexível do CSS
-                } else {
-                    card.style.display = 'none'; // Oculta o card
-                }
+                const campo = filtro === 'protocolo' ? card.dataset.protocolo
+                    : filtro === 'tipo' ? card.dataset.tipo
+                    : card.innerText;
+                card.style.display = campo.toLowerCase().includes(termoBusca) ? 'flex' : 'none';
             });
-        });
+        }
+        document.getElementById('inputBusca').addEventListener('input', aplicarFiltroBusca);
+        document.getElementById('filtroBusca').addEventListener('change', aplicarFiltroBusca);
         // Logout
         document.getElementById('btnSair').addEventListener('click', () => {
             signOut(auth).then(() => { window.location.href = '../index.html'; });
