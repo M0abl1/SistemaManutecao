@@ -2,3 +2,24 @@
 .firebaserc
 firebase.json
 firestore.rules
+# Dependências do Node (nunca sobem para o GitHub)
+node_modules/
+package-lock.json
+
+# Logs e arquivos de sistema
+*.log
+.DS_Store
+Thumbs.db
+
+# Configurações do Firebase CLI e chaves locais
+.firebase/
+.firebaserc
+
+# Arquivos de variáveis de ambiente com senhas/chaves (se utilizar)
+.env
+.env.local
+*.env
+
+# Cache de editores de código
+.vscode/
+.idea/
