@@ -21,7 +21,7 @@ O protocolo é sequencial e controlado pelo documento `configuracoes/contador_pr
 
 ## Técnico
 
-O cargo `tecnico` usa a fila de atendimentos e visualiza demandas ativas, isto é, com status `Pendente` ou `Em Andamento`. Pode iniciar, concluir ou cancelar atendimentos e registrar o parecer técnico.
+O cargo `tecnico` usa a fila de atendimentos e visualiza somente demandas que não sejam da categoria TI e estejam ativas, isto é, com status `Pendente` ou `Em Andamento`. Pode iniciar, concluir ou cancelar atendimentos e registrar o parecer técnico.
 
 O parecer é obrigatório para concluir ou cancelar uma demanda.
 
@@ -64,5 +64,5 @@ Evite conceder `supervisor` sem necessidade, pois esse perfil possui visão e co
 - Cargo TI não recebe documentos de outras categorias.
 - Cargo TI consegue atualizar uma demanda TI ativa.
 - Parecer vazio bloqueia conclusão e cancelamento.
-- Cargo técnico mantém o comportamento anterior.
+- Cargo técnico não visualiza demandas TI e continua atendendo as demais categorias.
 - Usuário sem cargo permitido tem a sessão encerrada.

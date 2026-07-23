@@ -19,7 +19,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 | Perfil | Permissões principais |
 | --- | --- |
 | Supervisor | Cadastra unidades, abre chamados, consulta a fila completa e atualiza qualquer demanda. |
-| Técnico | Consulta demandas ativas, registra o parecer técnico e atualiza o status do atendimento. |
+| Técnico | Consulta e atualiza demandas ativas que não sejam da categoria TI. |
 | TI | Consulta e atualiza somente demandas ativas da categoria TI. |
 
 Os perfis ficam na coleção `usuarios` do Firestore, vinculados ao UID da conta autenticada.
@@ -28,21 +28,25 @@ Os perfis ficam na coleção `usuarios` do Firestore, vinculados ao UID da conta
 
 ```text
 SistemaManutecao/
-├── index.html                 # Tela de login
-├── views/
-│   ├── supervisor.html        # Painel de supervisão
-│   └── tecnico.html           # Fila de atendimentos técnicos
-├── css/                       # Estilos das telas
-└── src/
-    ├── config/firebase.js     # Inicialização do Firebase Web
-    ├── controllers/           # Fluxos de login e supervisão
-    ├── models/                # Acesso aos dados de autenticação
-    └── infra/                 # Logger
+├── public/                    # Raiz publicada pelo Firebase Hosting
+│   ├── index.html             # Tela de login
+│   ├── views/
+│   │   ├── supervisor.html    # Painel de supervisão
+│   │   └── tecnico.html       # Fila técnica e de TI
+│   ├── css/                   # Estilos das telas
+│   └── src/
+│       ├── config/firebase.js # Inicialização do Firebase Web
+│       ├── controllers/       # Fluxos de login e supervisão
+│       ├── models/            # Acesso aos dados de autenticação
+│       └── infra/             # Logger
+├── docs/                      # Documentação técnica e operacional
+├── firebase.json              # Hosting e referência das regras
+└── firestore.rules            # Regras de segurança versionadas
 ```
 
 ## Executar localmente
 
-Como o projeto é estático, use um servidor HTTP local. Por exemplo, com a extensão **Live Server** do VS Code, abra a pasta do projeto e execute `index.html`.
+Como o projeto é estático, use um servidor HTTP local apontando para `public/`. Por exemplo, com a extensão **Live Server** do VS Code, execute `public/index.html`.
 
 Não abra o arquivo diretamente pelo explorador (`file://`), pois os módulos JavaScript precisam ser carregados por HTTP.
 
@@ -51,7 +55,7 @@ Não abra o arquivo diretamente pelo explorador (`file://`), pois os módulos Ja
 1. Crie ou selecione um projeto no [Firebase Console](https://console.firebase.google.com/).
 2. Habilite o método **Google** em Authentication > Sign-in method.
 3. Crie um banco **Cloud Firestore**.
-4. Cadastre uma aplicação Web e atualize `src/config/firebase.js` com a configuração gerada pelo Firebase.
+4. Cadastre uma aplicação Web e atualize `public/src/config/firebase.js` com a configuração gerada pelo Firebase.
 5. Crie o primeiro documento de supervisor em `usuarios/{uid}`:
 
 ```json
@@ -74,10 +78,10 @@ Para liberar um profissional de TI, defina `"cargo": "ti"` no documento `usuario
 Com o Firebase CLI instalado e autenticado, publique o site a partir da pasta do projeto:
 
 ```powershell
-firebase.cmd deploy --only hosting
+npx -y firebase-tools@latest deploy --only hosting,firestore:rules
 ```
 
-Mantenha as regras do Firestore restritivas: a interface sozinha não substitui as regras de segurança do banco.
+O comando publica o conteúdo de `public/` e as regras versionadas. Mantenha as regras restritivas: a interface sozinha não substitui a segurança do banco.
 
 ## Tecnologias
 
@@ -96,5 +100,5 @@ Mantenha as regras do Firestore restritivas: a interface sozinha não substitui 
 
 1. Entre como `supervisor`, crie uma demanda TI e outra de qualquer categoria e confirme que ambas aparecem no painel.
 2. Entre como `ti` e confirme que somente a demanda TI ativa é exibida e pode ser atualizada.
-3. Entre como `tecnico` e confirme que as demandas ativas continuam disponíveis conforme a regra atual.
+3. Entre como `tecnico` e confirme que somente demandas ativas não TI estão disponíveis.
 4. Conclua ou cancele uma demanda com parecer preenchido e confira o registro no painel do supervisor.

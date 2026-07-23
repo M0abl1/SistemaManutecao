@@ -1,7 +1,5 @@
 .firebase/
 .firebaserc
-firebase.json
-firestore.rules
 # Dependências do Node (nunca sobem para o GitHub)
 node_modules/
 package-lock.json
@@ -23,3 +21,5 @@ Thumbs.db
 # Cache de editores de código
 .vscode/
 .idea/
+.agents/
+skills-lock.json

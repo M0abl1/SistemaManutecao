@@ -9,7 +9,7 @@
 
 ## Configuração da aplicação
 
-As credenciais públicas do aplicativo Web ficam em `src/config/firebase.js`. Copie os valores exibidos em **Project settings > Your apps > Web app**. Não adicione ao projeto arquivos de conta de serviço, chaves privadas ou credenciais do Admin SDK.
+As configurações públicas do aplicativo Web ficam em `public/src/config/firebase.js`. Copie os valores exibidos em **Project settings > Your apps > Web app**. A chave da aplicação Web é pública por natureza e não substitui regras de segurança. Não adicione ao projeto arquivos de conta de serviço, chaves privadas, tokens ou credenciais do Admin SDK.
 
 ## Primeiro acesso
 
@@ -23,7 +23,7 @@ Valores de cargo aceitos pela interface:
 | Valor | Destino | Escopo |
 | --- | --- | --- |
 | `supervisor` | Painel do supervisor | Todas as demandas e unidades |
-| `tecnico` | Painel técnico | Demandas ativas da fila técnica |
+| `tecnico` | Painel técnico | Demandas ativas que não sejam da categoria TI |
 | `ti` | Painel técnico | Somente demandas ativas com `tipo_manutencao = "TI"` |
 | `pendente` | Tela de espera | Sem acesso operacional até liberação |
 
@@ -36,11 +36,12 @@ A filtragem da interface melhora a experiência, mas não é uma barreira de seg
 - permitir leitura do próprio documento em `usuarios/{uid}`;
 - permitir ao supervisor ler e alterar todas as demandas;
 - permitir ao cargo TI ler e atualizar apenas documentos cujo `tipo_manutencao` seja `TI`;
+- impedir o cargo técnico comum de ler ou atualizar documentos cujo `tipo_manutencao` seja `TI`;
 - impedir o cargo TI de alterar `tipo_manutencao` para contornar a restrição;
 - restringir a atualização técnica aos campos operacionais, como `status`, `observacao_tecnico` e `concluido_em`;
 - permitir que apenas supervisores cadastrem unidades e novas demandas.
 
-Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. A consulta do cargo TI já inclui `where("tipo_manutencao", "==", "TI")`, condição necessária para regras que limitam a leitura por categoria.
+Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. A consulta do cargo TI usa `where("tipo_manutencao", "==", "TI")`, enquanto a consulta do técnico comum usa `where("tipo_manutencao", "!=", "TI")`.
 
 ## Execução local
 
@@ -48,15 +49,15 @@ Sirva a raiz do repositório por HTTP. Exemplos: Live Server no VS Code ou qualq
 
 ## Implantação
 
-O repositório ignora `.firebaserc`, `firebase.json` e `firestore.rules`; portanto, a configuração do Firebase CLI é local. No ambiente responsável pela publicação:
+O repositório mantém `firebase.json` e `firestore.rules` versionados, mas ignora `.firebaserc`, caches e credenciais locais. No ambiente responsável pela publicação:
 
 ```powershell
-firebase login
-firebase use <id-do-projeto>
-firebase deploy --only hosting
+npx -y firebase-tools@latest login
+npx -y firebase-tools@latest use <id-do-projeto>
+npx -y firebase-tools@latest deploy --only hosting,firestore:rules
 ```
 
-Se as regras forem mantidas fora deste repositório, publique-as e registre a versão usada no processo operacional antes de liberar a aplicação.
+Revise as regras antes de uma liberação ampla e valide os três perfis depois de cada alteração de autorização.
 
 ## Diagnóstico
 
