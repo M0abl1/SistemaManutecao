@@ -18,9 +18,9 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 
 | Perfil | Permissões principais |
 | --- | --- |
-| Supervisor | Cadastra unidades, abre chamados, consulta a fila completa e atualiza qualquer demanda. |
-| Técnico | Consulta e atualiza demandas ativas que não sejam da categoria TI. |
-| TI | Consulta e atualiza somente demandas ativas da categoria TI. |
+| Supervisor | Cadastra unidades e também cria, consulta e atualiza qualquer chamado. |
+| Técnico | Cria, consulta e atualiza todos os chamados, incluindo o relato técnico. |
+| TI | Cria, consulta e atualiza todos os chamados, incluindo o relato técnico. |
 
 Os perfis ficam na coleção `usuarios` do Firestore, vinculados ao UID da conta autenticada.
 
@@ -99,6 +99,6 @@ O comando publica o conteúdo de `public/` e as regras versionadas. Mantenha as 
 ## Validação manual recomendada
 
 1. Entre como `supervisor`, crie uma demanda TI e outra de qualquer categoria e confirme que ambas aparecem no painel.
-2. Entre como `ti` e confirme que somente a demanda TI ativa é exibida e pode ser atualizada.
-3. Entre como `tecnico` e confirme que somente demandas ativas não TI estão disponíveis.
+2. Entre como `ti`, abra um chamado e confirme que pode visualizar e atualizar qualquer categoria.
+3. Entre como `tecnico` e confirme o mesmo fluxo colaborativo, incluindo edição do relato técnico.
 4. Conclua ou cancele uma demanda com parecer preenchido e confira o registro no painel do supervisor.

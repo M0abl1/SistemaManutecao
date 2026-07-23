@@ -55,12 +55,8 @@ service cloud.firestore {
       return hasRole('supervisor');
     }
 
-    function isTecnico() {
-      return hasRole('tecnico');
-    }
-
-    function isTi() {
-      return hasRole('ti');
+    function isOperational() {
+      return hasProfile() && profile().data.cargo in ['supervisor', 'tecnico', 'ti'];
     }
 
     function validText(value, minSize, maxSize) {
@@ -162,21 +158,12 @@ service cloud.firestore {
         data.ultimo_numero >= 0 && data.ultimo_numero <= 999999999;
     }
 
-    function isCategoriaTecnica(data) {
-      return data.tipo_manutencao in [
-        'Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza',
-        'Marcenaria', 'Alvenaria', 'Geral'
-      ];
+    function canReadDemanda() {
+      return isOperational();
     }
 
-    function canReadDemanda(data) {
-      return isSupervisor() ||
-        (isTi() && data.tipo_manutencao == 'TI') ||
-        (isTecnico() && isCategoriaTecnica(data));
-    }
-
-    function canTecnicoUpdateDemanda() {
-      return resource.data.status in ['Pendente', 'Em Andamento'] &&
+    function canOperationalUpdateDemanda() {
+      return isOperational() &&
         request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly([
             'status', 'observacao_tecnico', 'concluido_em',
@@ -187,18 +174,7 @@ service cloud.firestore {
         ] &&
         (!(request.resource.data.status in ['Concluído', 'Cancelado']) ||
           (validText(request.resource.data.observacao_tecnico, 1, 5000) &&
-           'concluido_em' in request.resource.data)) &&
-        ((isTi() && resource.data.tipo_manutencao == 'TI') ||
-         (isTecnico() && isCategoriaTecnica(resource.data)));
-    }
-
-    function canSupervisorUpdateDemanda() {
-      return isSupervisor() &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly([
-            'status', 'observacao_tecnico', 'concluido_em',
-            'status_alterado_por', 'status_alterado_em'
-          ]);
+           'concluido_em' in request.resource.data));
     }
 
     function statusAuditMatchesRequester(data) {
@@ -236,8 +212,8 @@ service cloud.firestore {
     }
 
     match /demandas/{demandaId} {
-      allow read: if canReadDemanda(resource.data);
-      allow create: if isSupervisor() &&
+      allow read: if canReadDemanda();
+      allow create: if isOperational() &&
         isValidDemanda(request.resource.data) &&
         statusAuditMatchesRequester(request.resource.data) &&
         getAfter(/databases/$(database)/documents/configuracoes/contador_protocolo)
@@ -245,7 +221,7 @@ service cloud.firestore {
       allow update: if isValidDemanda(request.resource.data) &&
         uidNotModified(resource.data, request.resource.data) &&
         statusAuditMatchesRequester(request.resource.data) &&
-        (canSupervisorUpdateDemanda() || canTecnicoUpdateDemanda());
+        canOperationalUpdateDemanda();
       allow delete: if false;
     }
 
@@ -257,12 +233,12 @@ service cloud.firestore {
     }
 
     match /configuracoes/{configId} {
-      allow read: if isSupervisor() &&
+      allow read: if isOperational() &&
         configId in ['contador_protocolo', 'contador_unidades'];
-      allow create: if isSupervisor() &&
+      allow create: if isOperational() &&
         configId in ['contador_protocolo', 'contador_unidades'] &&
         isValidCounterCreate(configId, request.resource.data);
-      allow update: if isSupervisor() &&
+      allow update: if isOperational() &&
         configId in ['contador_protocolo', 'contador_unidades'] &&
         isValidCounterUpdate(request.resource.data);
       allow delete: if false;

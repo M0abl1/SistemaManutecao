@@ -39,8 +39,29 @@ body {
 }
 
 .container {
-    max-width: 600px;
+    max-width: 760px;
     margin: 0 auto;
+}
+
+.card-formulario {
+    background: var(--bg-card);
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.card-formulario h2 { font-size: 18px; margin-bottom: 14px; }
+.card-formulario form, .card-formulario label { display: grid; gap: 7px; }
+.card-formulario form { gap: 13px; }
+.grid-formulario { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card-formulario input, .card-formulario select, .card-formulario textarea {
+    width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--borda);
+    background: var(--bg-principal); color: var(--texto-principal); font: inherit;
+}
+.btn-criar {
+    border: 0; border-radius: 8px; padding: 12px; background: var(--primaria);
+    color: white; font-weight: 700; cursor: pointer;
 }
 
 /* Cabeçalho Superior */
@@ -152,9 +173,13 @@ header {
 /* Grade de Botões de Ação para Dedos (Mobile-First) */
 .acoes-grupo {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-top: 14px;
+}
+
+@media (max-width: 560px) {
+    .grid-formulario, .acoes-grupo { grid-template-columns: 1fr 1fr; }
 }
 
 .btn-acao {

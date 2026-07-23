@@ -50,6 +50,7 @@
             </div>
         </nav>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="conteudo-principal" id="conteudoPrincipal">
@@ -211,11 +212,33 @@
                 document.querySelectorAll('.secao-painel').forEach(s => s.classList.remove('ativa'));
                 document.getElementById(`painel-${e.currentTarget.dataset.alvo}`).classList.add('ativa');
                 document.getElementById('tituloPagina').innerText = e.currentTarget.innerText;
+                fecharSidebarMobile();
             });
         });
 
+        function fecharSidebarMobile() {
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                document.getElementById('sidebar').classList.remove('interna-aberta');
+                document.getElementById('sidebarBackdrop').classList.remove('visivel');
+                document.body.classList.remove('menu-mobile-aberto');
+            }
+        }
+
         document.getElementById('btnToggleSidebar').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('interna-aberta');
+            const aberto = document.getElementById('sidebar').classList.toggle('interna-aberta');
+            document.getElementById('sidebarBackdrop').classList.toggle('visivel', aberto);
+            document.body.classList.toggle('menu-mobile-aberto', aberto);
+        });
+        document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebarMobile);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') fecharSidebarMobile();
+        });
+        window.addEventListener('resize', () => {
+            if (!window.matchMedia('(max-width: 768px)').matches) {
+                document.getElementById('sidebar').classList.remove('interna-aberta');
+                document.getElementById('sidebarBackdrop').classList.remove('visivel');
+                document.body.classList.remove('menu-mobile-aberto');
+            }
         });
 
         // 🔒 AUTENTICAÇÃO
@@ -385,8 +408,11 @@ if (d.prazo_limite) {
                             ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: var(--texto-secundario, #888);">Nenhum relato técnico registrado.</i>'}
                         </span>
                     </div>
+
+                    <textarea id="obs-supervisor-${d.id}" rows="3" placeholder="Preencha ou edite o relato técnico" style="width:100%; margin-top:12px; padding:10px; border:1px solid var(--borda); border-radius:6px; background:var(--bg-principal); color:var(--texto-principal);">${d.observacao_tecnico || ''}</textarea>
                     
                     <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
+                        <button class="btn-acao" style="background: #f59e0b;" data-demanda-id="${d.id}" data-novo-status="Pendente">Pendente</button>
                         <button class="btn-acao" style="background: #3b82f6;" data-demanda-id="${d.id}" data-novo-status="Em Andamento">Andamento</button>
                         <button class="btn-acao" style="background: #10b981;" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
                         <button class="btn-acao" style="background: #ef4444;" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
@@ -431,8 +457,10 @@ if (d.prazo_limite) {
             const docRef = doc(db, "demandas", idDoc);
             try {
                 if (!perfilUsuarioAtual) return;
+                const observacao = document.getElementById(`obs-supervisor-${idDoc}`)?.value.trim() || '';
                 const payload = {
                     status: novoStatus,
+                    observacao_tecnico: observacao,
                     status_alterado_por: perfilUsuarioAtual,
                     status_alterado_em: serverTimestamp()
                 };

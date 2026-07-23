@@ -23,8 +23,8 @@ Valores de cargo aceitos pela interface:
 | Valor | Destino | Escopo |
 | --- | --- | --- |
 | `supervisor` | Painel do supervisor | Todas as demandas e unidades |
-| `tecnico` | Painel técnico | Demandas ativas que não sejam da categoria TI |
-| `ti` | Painel técnico | Somente demandas ativas com `tipo_manutencao = "TI"` |
+| `tecnico` | Painel colaborativo | Cria, consulta e atualiza todos os chamados |
+| `ti` | Painel colaborativo | Cria, consulta e atualiza todos os chamados |
 | `pendente` | Tela de espera | Sem acesso operacional até liberação |
 
 Os valores são sensíveis a maiúsculas e minúsculas. Use exatamente `supervisor`, `tecnico` e `ti`.
@@ -35,13 +35,12 @@ A filtragem da interface melhora a experiência, mas não é uma barreira de seg
 
 - permitir leitura do próprio documento em `usuarios/{uid}`;
 - permitir ao supervisor ler e alterar todas as demandas;
-- permitir ao cargo TI ler e atualizar apenas documentos cujo `tipo_manutencao` seja `TI`;
-- impedir o cargo técnico comum de ler ou atualizar documentos cujo `tipo_manutencao` seja `TI`;
-- impedir o cargo TI de alterar `tipo_manutencao` para contornar a restrição;
-- restringir a atualização técnica aos campos operacionais, como `status`, `observacao_tecnico` e `concluido_em`;
+- permitir aos cargos operacionais ler e criar chamados de qualquer categoria;
+- restringir atualizações aos campos operacionais, como `status`, `observacao_tecnico`, auditoria e `concluido_em`;
+- confirmar nas regras que a identidade gravada na auditoria corresponde ao usuário autenticado;
 - permitir que apenas supervisores cadastrem unidades e novas demandas.
 
-Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. A consulta do cargo TI usa `where("tipo_manutencao", "==", "TI")`, enquanto a consulta do técnico comum usa uma lista positiva com `where("tipo_manutencao", "in", [...categorias])`. Assim, nenhuma consulta técnica pode incluir TI no conjunto potencial de resultados.
+Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. Todos os cargos operacionais consultam a mesma fila ordenada por protocolo; os cargos permanecem registrados para identificação e auditoria.
 
 ## Execução local
 

@@ -21,15 +21,13 @@ O protocolo é sequencial e controlado pelo documento `configuracoes/contador_pr
 
 ## Técnico
 
-O cargo `tecnico` usa a fila de atendimentos e visualiza somente demandas que não sejam da categoria TI e estejam ativas, isto é, com status `Pendente` ou `Em Andamento`. Pode iniciar, concluir ou cancelar atendimentos e registrar o parecer técnico.
+O cargo `tecnico` usa o painel colaborativo para abrir, visualizar e atualizar chamados de qualquer categoria e status. Também pode preencher ou editar o relato técnico.
 
 O parecer é obrigatório para concluir ou cancelar uma demanda.
 
 ## TI
 
-O cargo `ti` usa a mesma tela operacional, mas sua consulta é limitada no Firestore a `tipo_manutencao = "TI"`. Além da consulta restrita, a interface verifica novamente a categoria antes de enviar uma atualização.
-
-Esse cargo visualiza somente demandas TI que estejam `Pendente` ou `Em Andamento`. Demandas concluídas e canceladas permanecem disponíveis ao supervisor no histórico geral.
+O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões operacionais sobre os chamados. A distinção de cargo permanece apenas para identificação e auditoria de quem realizou cada alteração.
 
 ## Fluxo de status
 
@@ -61,8 +59,8 @@ Evite conceder `supervisor` sem necessidade, pois esse perfil possui visão e co
 
 - Supervisor enxerga demandas TI e não TI.
 - Supervisor consegue criar uma demanda escolhendo TI.
-- Cargo TI não recebe documentos de outras categorias.
-- Cargo TI consegue atualizar uma demanda TI ativa.
+- Cargos técnico e TI visualizam e atualizam chamados de todas as categorias e status.
+- Cargos técnico e TI conseguem abrir novos chamados.
 - Parecer vazio bloqueia conclusão e cancelamento.
-- Cargo técnico não visualiza demandas TI e continua atendendo as demais categorias.
+- Toda alteração registra o responsável autenticado e o horário do servidor.
 - Usuário sem cargo permitido tem a sessão encerrada.

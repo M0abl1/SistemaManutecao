@@ -60,6 +60,8 @@ body {
 
 .sidebar.oculta { transform: translateX(-100%); }
 
+.sidebar-backdrop { display: none; }
+
 .sidebar-header {
     padding: 24px 16px;
     display: flex;
@@ -159,6 +161,12 @@ input, select, textarea {
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); }
     .sidebar.interna-aberta { transform: translateX(0); }
+    .sidebar-backdrop {
+        display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55);
+        opacity: 0; visibility: hidden; transition: opacity 0.2s; z-index: 90;
+    }
+    .sidebar-backdrop.visivel { opacity: 1; visibility: visible; }
+    body.menu-mobile-aberto { overflow: hidden; }
     .conteudo-principal { margin-left: 0 !important; padding: 16px; }
     .tabela-demandas thead { display: none; }
     .tabela-demandas tr { display: block; background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; margin-bottom: 12px; padding: 12px; }
