@@ -77,6 +77,12 @@ service cloud.firestore {
       return !(field in data) || validIsoDate(data[field]);
     }
 
+    function validOptionalDemandDate(data, field) {
+      return !(field in data) || validIsoDate(data[field]) ||
+        (data[field] is string && data[field].size() >= 16 &&
+         data[field].size() <= 100 && data[field].matches('^Solicitado em:.*$'));
+    }
+
     function validOptionalText(data, field, maxSize) {
       return !(field in data) || validText(data[field], 0, maxSize);
     }
@@ -117,7 +123,7 @@ service cloud.firestore {
         validText(data.descricao, 0, 3000) &&
         data.status in ['Pendente', 'Em Andamento', 'Concluído', 'Cancelado'] &&
         validText(data.observacao_tecnico, 0, 5000) &&
-        validOptionalIsoDate(data, 'prazo_limite') &&
+        validOptionalDemandDate(data, 'prazo_limite') &&
         validOptionalIsoDate(data, 'criado_em') &&
         validOptionalIsoDate(data, 'concluido_em');
     }
