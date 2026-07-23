@@ -9,6 +9,7 @@ export class AuthModel {
             Logger.info('AuthModel.autenticarComGoogle', 'Iniciando popup do Google');
             await setPersistence(auth, browserLocalPersistence);
             const result = await signInWithPopup(auth, googleProvider);
+            Logger.info('AuthModel.autenticarComGoogle', 'Popup concluído e sessão autenticada');
             return result.user;
         } catch (error) {
             Logger.error('AuthModel.autenticarComGoogle', 'Falha no popup de autenticação', error);
