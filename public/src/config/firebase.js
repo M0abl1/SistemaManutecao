@@ -4,7 +4,11 @@ import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/
 
 const firebaseConfig = {
   apiKey: "AIzaSyCNGjgWUVyjnglM57IiRkhbTyH3BsQVo-w",
-  authDomain: "manutencaoseduc-33d37.firebaseapp.com",
+  // No Hosting, mantenha o helper OAuth na mesma origem para evitar que
+  // navegadores bloqueiem o retorno da autenticação por armazenamento externo.
+  authDomain: window.location.hostname === "manutencaoseduc-33d37.web.app"
+    ? "manutencaoseduc-33d37.web.app"
+    : "manutencaoseduc-33d37.firebaseapp.com",
   projectId: "manutencaoseduc-33d37",
   storageBucket: "manutencaoseduc-33d37.firebasestorage.app",
   messagingSenderId: "818235006427",
