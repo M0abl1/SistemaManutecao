@@ -34,13 +34,16 @@
     <!-- SCRIPT BLINDADO (Fim do Loop) -->
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Em Andamento', 'Concluído', 'Cancelado']);
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
+        const CARGOS_PERMITIDOS = new Set(['tecnico', 'ti']);
+        let cargoUsuario = null;
+        const demandasVisiveis = new Set();
 
         // Função para mostrar erro sem recarregar a página
         function mostrarErroNaTela(mensagem) {
@@ -67,8 +70,8 @@
                 if (userDoc.exists()) {
                     const dadosPerfil = userDoc.data();
                     
-                    if (dadosPerfil.cargo !== 'tecnico') {
-                        mostrarErroNaTela("Acesso bloqueado: esta tela aceita apenas técnicos.");
+                    if (!CARGOS_PERMITIDOS.has(dadosPerfil.cargo)) {
+                        mostrarErroNaTela("Acesso bloqueado: esta tela aceita apenas técnicos e profissionais de TI.");
                         await signOut(auth);
                         window.location.replace('../index.html');
                         return;
@@ -80,8 +83,12 @@
                     return;
                 }
                 
+                cargoUsuario = userDoc.data().cargo;
+                document.getElementById('nomeTecnico').innerText = cargoUsuario === 'ti'
+                    ? `${user.displayName || "Profissional"} - TI`
+                    : user.displayName || "Técnico(a)";
                 document.getElementById('telaErro').style.display = 'none';
-                inicializarFilaTempoReal();
+                inicializarFilaTempoReal(cargoUsuario);
 
             } catch (error) {
                 console.error("Falha ao validar o perfil:", error);
@@ -91,8 +98,10 @@
             }
         });
 
-        function inicializarFilaTempoReal() {
-            const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));
+        function inicializarFilaTempoReal(cargo) {
+            const q = cargo === 'ti'
+                ? query(collection(db, "demandas"), where("tipo_manutencao", "==", "TI"))
+                : query(collection(db, "demandas"), orderBy("protocolo", "desc"));
             
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('listaOrdens');
@@ -100,12 +109,16 @@
                 container.innerHTML = '';
 
                 const demandasAtivas = [];
+                demandasVisiveis.clear();
                 snapshot.forEach(doc => {
                     const dados = doc.data();
                     if(dados.status === 'Pendente' || dados.status === 'Em Andamento') {
                         demandasAtivas.push({ idDoc: doc.id, ...dados });
+                        demandasVisiveis.add(doc.id);
                     }
                 });
+
+                demandasAtivas.sort((a, b) => Number(b.protocolo || 0) - Number(a.protocolo || 0));
 
                 if (demandasAtivas.length === 0) {
                     container.innerHTML = `
@@ -155,6 +168,10 @@
 
         async function mudarStatusOs(idDoc, novoStatus) {
             if (!STATUS_PERMITIDOS.has(novoStatus)) return;
+            if (!demandasVisiveis.has(idDoc)) {
+                alert("Você não tem permissão para alterar esta demanda.");
+                return;
+            }
             const txtObservacao = document.getElementById(`obs-${idDoc}`).value.trim();
             if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && txtObservacao === '') {
                 alert("Por favor, preencha a observação!");
@@ -162,6 +179,13 @@
             }
             const docRef = doc(db, "demandas", idDoc);
             try {
+                if (cargoUsuario === 'ti') {
+                    const demandaDoc = await getDoc(docRef);
+                    if (!demandaDoc.exists() || demandaDoc.data().tipo_manutencao !== 'TI') {
+                        alert("O cargo TI só pode alterar demandas da categoria TI.");
+                        return;
+                    }
+                }
                 await updateDoc(docRef, { 
                     status: novoStatus, 
                     observacao_tecnico: txtObservacao,
