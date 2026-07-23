@@ -47,16 +47,16 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
     }
 
-    function hasRole(role) {
-      return hasProfile() && profile().data.cargo == role;
-    }
-
     function isSupervisor() {
-      return hasRole('supervisor');
+      return hasProfile() && profile().data.cargo in ['supervisor', 'Supervisor', 'SUPERVISOR'];
     }
 
     function isOperational() {
-      return hasProfile() && profile().data.cargo in ['supervisor', 'tecnico', 'ti'];
+      return hasProfile() && profile().data.cargo in [
+        'supervisor', 'Supervisor', 'SUPERVISOR',
+        'tecnico', 'Tecnico', 'TECNICO', 'técnico', 'Técnico', 'TÉCNICO',
+        'ti', 'TI', 'Ti'
+      ];
     }
 
     function validText(value, minSize, maxSize) {
@@ -89,7 +89,11 @@ service cloud.firestore {
         actor.keys().hasOnly(['uid', 'nome', 'cargo']) &&
         validText(actor.uid, 1, 128) &&
         validText(actor.nome, 1, 120) &&
-        actor.cargo in ['supervisor', 'tecnico', 'ti'];
+        actor.cargo in [
+          'supervisor', 'Supervisor', 'SUPERVISOR',
+          'tecnico', 'Tecnico', 'TECNICO', 'técnico', 'Técnico', 'TÉCNICO',
+          'ti', 'TI', 'Ti'
+        ];
     }
 
     function validOptionalStatusAudit(data) {

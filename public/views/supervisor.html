@@ -250,7 +250,8 @@
                 }
                 try {
                     const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-                    if (!userDoc.exists() || userDoc.data().cargo !== 'supervisor') {
+                    const cargoNormalizado = String(userDoc.data()?.cargo || '').trim().toLocaleLowerCase('pt-BR');
+                    if (!userDoc.exists() || cargoNormalizado !== 'supervisor') {
                         await negarAcesso("Acesso negado: Painel exclusivo para supervisores.");
                         return;
                     }

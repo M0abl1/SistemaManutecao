@@ -80,6 +80,8 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
         const CARGOS_PERMITIDOS = new Set(['tecnico', 'ti']);
+        const normalizarCargo = (cargo) => String(cargo || '').trim()
+            .toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         let cargoUsuario = null;
         let perfilUsuarioAtual = null;
         const demandasVisiveis = new Set();
@@ -109,16 +111,13 @@
                 if (userDoc.exists()) {
                     const dadosPerfil = userDoc.data();
                     
-                    if (!CARGOS_PERMITIDOS.has(dadosPerfil.cargo)) {
+                    const cargoNormalizado = normalizarCargo(dadosPerfil.cargo);
+                    if (!CARGOS_PERMITIDOS.has(cargoNormalizado)) {
                         mostrarErroNaTela("Acesso bloqueado: esta tela aceita apenas técnicos e profissionais de TI.");
-                        await signOut(auth);
-                        window.location.replace('../index.html');
                         return;
                     }
                 } else {
                     mostrarErroNaTela("Acesso bloqueado: perfil de técnico não encontrado.");
-                    await signOut(auth);
-                    window.location.replace('../index.html');
                     return;
                 }
                 
@@ -128,7 +127,7 @@
                     nome: userDoc.data().nome || user.displayName || 'Profissional',
                     cargo: cargoUsuario
                 };
-                document.getElementById('nomeTecnico').innerText = cargoUsuario === 'ti'
+                document.getElementById('nomeTecnico').innerText = normalizarCargo(cargoUsuario) === 'ti'
                     ? `${user.displayName || "Profissional"} - TI`
                     : user.displayName || "Técnico(a)";
                 document.getElementById('telaErro').style.display = 'none';
@@ -137,9 +136,8 @@
 
             } catch (error) {
                 console.error("Falha ao validar o perfil:", error);
-                mostrarErroNaTela("Não foi possível validar as suas permissões.");
-                await signOut(auth);
-                window.location.replace('../index.html');
+                const codigo = error?.code ? ` (${escapeHtml(error.code)})` : '';
+                mostrarErroNaTela(`Não foi possível validar as suas permissões${codigo}. Atualize a página ou entre novamente.`);
             }
         });
 
