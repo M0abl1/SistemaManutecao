@@ -50,6 +50,7 @@
             </div>
         </nav>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
     <!-- CONTEÚDO PRINCIPAL -->
     <main class="conteudo-principal" id="conteudoPrincipal">
@@ -185,10 +186,11 @@
     <!-- SCRIPT DO FIREBASE (Com importação do addDoc inserida) -->
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
+        let perfilUsuarioAtual = null;
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
@@ -210,11 +212,33 @@
                 document.querySelectorAll('.secao-painel').forEach(s => s.classList.remove('ativa'));
                 document.getElementById(`painel-${e.currentTarget.dataset.alvo}`).classList.add('ativa');
                 document.getElementById('tituloPagina').innerText = e.currentTarget.innerText;
+                fecharSidebarMobile();
             });
         });
 
+        function fecharSidebarMobile() {
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                document.getElementById('sidebar').classList.remove('interna-aberta');
+                document.getElementById('sidebarBackdrop').classList.remove('visivel');
+                document.body.classList.remove('menu-mobile-aberto');
+            }
+        }
+
         document.getElementById('btnToggleSidebar').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('interna-aberta');
+            const aberto = document.getElementById('sidebar').classList.toggle('interna-aberta');
+            document.getElementById('sidebarBackdrop').classList.toggle('visivel', aberto);
+            document.body.classList.toggle('menu-mobile-aberto', aberto);
+        });
+        document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebarMobile);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') fecharSidebarMobile();
+        });
+        window.addEventListener('resize', () => {
+            if (!window.matchMedia('(max-width: 768px)').matches) {
+                document.getElementById('sidebar').classList.remove('interna-aberta');
+                document.getElementById('sidebarBackdrop').classList.remove('visivel');
+                document.body.classList.remove('menu-mobile-aberto');
+            }
         });
 
         // 🔒 AUTENTICAÇÃO
@@ -226,10 +250,16 @@
                 }
                 try {
                     const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-                    if (!userDoc.exists() || userDoc.data().cargo !== 'supervisor') {
+                    const cargoNormalizado = String(userDoc.data()?.cargo || '').trim().toLocaleLowerCase('pt-BR');
+                    if (!userDoc.exists() || cargoNormalizado !== 'supervisor') {
                         await negarAcesso("Acesso negado: Painel exclusivo para supervisores.");
                         return;
                     }
+                    perfilUsuarioAtual = {
+                        uid: user.uid,
+                        nome: userDoc.data().nome || user.displayName || 'Supervisor',
+                        cargo: 'supervisor'
+                    };
                     // Inicia a carga de dados
                     inicializarTelasSupervisor();
                     inicializarUnidades();
@@ -299,7 +329,9 @@
                     descricao: document.getElementById('descricao').value,
                     status: "Pendente",
                     prazo_limite: new Date().toISOString(),
-                    observacao_tecnico: ""
+                    observacao_tecnico: "",
+                    status_alterado_por: perfilUsuarioAtual,
+                    status_alterado_em: serverTimestamp()
                 };
 
                 let protocolo;
@@ -326,6 +358,16 @@
             if (d.status === 'Concluído') corStatus = '#10b981';
             if (d.status === 'Cancelado') corStatus = '#ef4444';
 
+            const responsavelStatus = d.status_alterado_por;
+            let alteracaoStatusTexto = 'Não registrada';
+            if (responsavelStatus && responsavelStatus.nome) {
+                const dataAlteracao = d.status_alterado_em?.toDate
+                    ? d.status_alterado_em.toDate()
+                    : d.status_alterado_em ? new Date(d.status_alterado_em) : null;
+                const dataTexto = dataAlteracao && !isNaN(dataAlteracao) ? ` em ${dataAlteracao.toLocaleString('pt-BR')}` : '';
+                alteracaoStatusTexto = `${responsavelStatus.nome} (${responsavelStatus.cargo || 'cargo não informado'})${dataTexto}`;
+            }
+
 let prazoTexto = "Não definido";
 if (d.prazo_limite) {
     if (d.prazo_limite.includes("Solicitado em")) {
@@ -344,6 +386,7 @@ if (d.prazo_limite) {
 
             d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
             prazoTexto = escapeHtml(prazoTexto);
+            alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
 
             return `
                 <div class="card-demanda" data-protocolo="${d.protocolo}" data-tipo="${d.tipo_manutencao || 'Geral'}">
@@ -356,6 +399,7 @@ if (d.prazo_limite) {
                     <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
                     <div><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
                     <div style="color: var(--texto-secundario, #666);"><b>Data de Abertura:</b> ${prazoTexto}</div>
+                    <div style="color: var(--texto-secundario, #666);"><b>Última alteração de status:</b> ${alteracaoStatusTexto}</div>
                     
                     <div style="margin-top: 10px;"><b>Relato Original:</b> ${d.descricao || 'Sem observações iniciais.'}</div>
                     
@@ -365,8 +409,11 @@ if (d.prazo_limite) {
                             ${d.observacao_tecnico ? d.observacao_tecnico : '<i style="color: var(--texto-secundario, #888);">Nenhum relato técnico registrado.</i>'}
                         </span>
                     </div>
+
+                    <textarea id="obs-supervisor-${d.id}" rows="3" placeholder="Preencha ou edite o relato técnico" style="width:100%; margin-top:12px; padding:10px; border:1px solid var(--borda); border-radius:6px; background:var(--bg-principal); color:var(--texto-principal);">${d.observacao_tecnico || ''}</textarea>
                     
                     <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
+                        <button class="btn-acao" style="background: #f59e0b;" data-demanda-id="${d.id}" data-novo-status="Pendente">Pendente</button>
                         <button class="btn-acao" style="background: #3b82f6;" data-demanda-id="${d.id}" data-novo-status="Em Andamento">Andamento</button>
                         <button class="btn-acao" style="background: #10b981;" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
                         <button class="btn-acao" style="background: #ef4444;" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
@@ -410,7 +457,14 @@ if (d.prazo_limite) {
 
             const docRef = doc(db, "demandas", idDoc);
             try {
-                const payload = { status: novoStatus };
+                if (!perfilUsuarioAtual) return;
+                const observacao = document.getElementById(`obs-supervisor-${idDoc}`)?.value.trim() || '';
+                const payload = {
+                    status: novoStatus,
+                    observacao_tecnico: observacao,
+                    status_alterado_por: perfilUsuarioAtual,
+                    status_alterado_em: serverTimestamp()
+                };
                 if (novoStatus === 'Concluído' || novoStatus === 'Cancelado') {
                     payload.concluido_em = new Date().toISOString();
                 }

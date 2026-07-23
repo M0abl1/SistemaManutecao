@@ -1,5 +1,5 @@
 import { db, auth, googleProvider } from '../config/firebase.js';
-import { signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { browserLocalPersistence, setPersistence, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { Logger } from '../infra/logger.js';
 
@@ -7,7 +7,9 @@ export class AuthModel {
     async autenticarComGoogle() {
         try {
             Logger.info('AuthModel.autenticarComGoogle', 'Iniciando popup do Google');
+            await setPersistence(auth, browserLocalPersistence);
             const result = await signInWithPopup(auth, googleProvider);
+            Logger.info('AuthModel.autenticarComGoogle', 'Popup concluído e sessão autenticada');
             return result.user;
         } catch (error) {
             Logger.error('AuthModel.autenticarComGoogle', 'Falha no popup de autenticação', error);

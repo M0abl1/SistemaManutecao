@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Técnico - Diagnóstico</title>
+    <title>Painel Colaborativo de Demandas</title>
     <link rel="stylesheet" href="../css/tecnico.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
         <header>
             <div>
                 <h1 style="font-size: 18px; font-weight: 700;" id="nomeTecnico">Lendo Sessão...</h1>
-                <p style="font-size: 12px; color: var(--texto-secundario);">Técnico em Campo</p>
+                <p style="font-size: 12px; color: var(--texto-secundario);">Gestão colaborativa de chamados</p>
             </div>
             <button class="btn-sair" id="btnSair">Sair (Manual)</button>
         </header>
@@ -22,6 +22,44 @@
         <div id="telaErro" style="display: none; padding: 24px; background: #ffebee; color: #c62828; border: 2px solid #ef5350; border-radius: 8px; margin: 20px 0; font-size: 16px; font-weight: bold; text-align: center;">
             <!-- O erro vai aparecer aqui dentro -->
         </div>
+
+        <section class="card-formulario">
+            <h2>Novo chamado</h2>
+            <form id="formDemanda">
+                <div class="grid-formulario">
+                    <label>Categoria
+                        <select id="tipoManutencao" required>
+                            <option value="Elétrica">Elétrica</option>
+                            <option value="Hidráulica">Hidráulica</option>
+                            <option value="Patrimônio">Patrimônio</option>
+                            <option value="Limpeza">Limpeza</option>
+                            <option value="Marcenaria">Marcenaria</option>
+                            <option value="Alvenaria">Alvenaria</option>
+                            <option value="TI">TI</option>
+                        </select>
+                    </label>
+                    <label>Prioridade
+                        <select id="prioridade" required>
+                            <option value="Baixa">Baixa</option>
+                            <option value="Média" selected>Média</option>
+                            <option value="Alta">Alta</option>
+                        </select>
+                    </label>
+                </div>
+                <label>Unidade / setor
+                    <select id="unidadeAtendida" required>
+                        <option value="" disabled selected>Carregando unidades...</option>
+                    </select>
+                </label>
+                <label>Quem será atendido
+                    <input id="quemAtendido" maxlength="200">
+                </label>
+                <label>Descrição
+                    <textarea id="descricao" rows="3" maxlength="3000"></textarea>
+                </label>
+                <button type="submit" class="btn-criar">Abrir chamado</button>
+            </form>
+        </section>
 
         <!-- FILAS DE ORDENS DO DIA -->
         <div id="listaOrdens">
@@ -34,15 +72,18 @@
     <!-- SCRIPT BLINDADO (Fim do Loop) -->
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const STATUS_PERMITIDOS = new Set(['Em Andamento', 'Concluído', 'Cancelado']);
+        const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
         const CARGOS_PERMITIDOS = new Set(['tecnico', 'ti']);
+        const normalizarCargo = (cargo) => String(cargo || '').trim()
+            .toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         let cargoUsuario = null;
+        let perfilUsuarioAtual = null;
         const demandasVisiveis = new Set();
 
         // Função para mostrar erro sem recarregar a página
@@ -70,38 +111,58 @@
                 if (userDoc.exists()) {
                     const dadosPerfil = userDoc.data();
                     
-                    if (!CARGOS_PERMITIDOS.has(dadosPerfil.cargo)) {
+                    const cargoNormalizado = normalizarCargo(dadosPerfil.cargo);
+                    if (!CARGOS_PERMITIDOS.has(cargoNormalizado)) {
                         mostrarErroNaTela("Acesso bloqueado: esta tela aceita apenas técnicos e profissionais de TI.");
-                        await signOut(auth);
-                        window.location.replace('../index.html');
                         return;
                     }
                 } else {
                     mostrarErroNaTela("Acesso bloqueado: perfil de técnico não encontrado.");
-                    await signOut(auth);
-                    window.location.replace('../index.html');
                     return;
                 }
                 
                 cargoUsuario = userDoc.data().cargo;
-                document.getElementById('nomeTecnico').innerText = cargoUsuario === 'ti'
+                perfilUsuarioAtual = {
+                    uid: user.uid,
+                    nome: userDoc.data().nome || user.displayName || 'Profissional',
+                    cargo: cargoUsuario
+                };
+                document.getElementById('nomeTecnico').innerText = normalizarCargo(cargoUsuario) === 'ti'
                     ? `${user.displayName || "Profissional"} - TI`
                     : user.displayName || "Técnico(a)";
                 document.getElementById('telaErro').style.display = 'none';
-                inicializarFilaTempoReal(cargoUsuario);
+                inicializarUnidades();
+                inicializarFilaTempoReal();
 
             } catch (error) {
                 console.error("Falha ao validar o perfil:", error);
-                mostrarErroNaTela("Não foi possível validar as suas permissões.");
-                await signOut(auth);
-                window.location.replace('../index.html');
+                const codigo = error?.code ? ` (${escapeHtml(error.code)})` : '';
+                mostrarErroNaTela(`Não foi possível validar as suas permissões${codigo}. Atualize a página ou entre novamente.`);
             }
         });
 
-        function inicializarFilaTempoReal(cargo) {
-            const q = cargo === 'ti'
-                ? query(collection(db, "demandas"), where("tipo_manutencao", "==", "TI"))
-                : query(collection(db, "demandas"), orderBy("protocolo", "desc"));
+        function inicializarUnidades() {
+            const select = document.getElementById('unidadeAtendida');
+            onSnapshot(query(collection(db, 'unidades')), (snapshot) => {
+                const unidades = [];
+                snapshot.forEach(documento => {
+                    const unidade = documento.data();
+                    if (unidade.nome) unidades.push(unidade.nome);
+                });
+                unidades.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                select.innerHTML = '<option value="" disabled selected>Selecione a unidade...</option>' +
+                    unidades.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
+                if (unidades.length === 0) {
+                    select.innerHTML = '<option value="" disabled selected>Nenhuma unidade cadastrada</option>';
+                }
+            }, (error) => {
+                console.error('Erro ao carregar unidades:', error);
+                select.innerHTML = `<option value="" disabled selected>Erro: ${escapeHtml(error.code || 'falha-na-leitura')}</option>`;
+            });
+        }
+
+        function inicializarFilaTempoReal() {
+            const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));
             
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('listaOrdens');
@@ -112,10 +173,8 @@
                 demandasVisiveis.clear();
                 snapshot.forEach(doc => {
                     const dados = doc.data();
-                    if(dados.status === 'Pendente' || dados.status === 'Em Andamento') {
-                        demandasAtivas.push({ idDoc: doc.id, ...dados });
-                        demandasVisiveis.add(doc.id);
-                    }
+                    demandasAtivas.push({ idDoc: doc.id, ...dados });
+                    demandasVisiveis.add(doc.id);
                 });
 
                 demandasAtivas.sort((a, b) => Number(b.protocolo || 0) - Number(a.protocolo || 0));
@@ -124,17 +183,29 @@
                     container.innerHTML = `
                         <div style="text-align:center; padding: 48px 16px; background: var(--bg-card); border-radius:12px; border:1px solid var(--borda);">
                             <span style="font-size: 32px;">🎉</span>
-                            <p style="margin-top:10px; font-weight:600;">Excelente trabalho! Nenhuma demanda ativa na fila.</p>
+                            <p style="margin-top:10px; font-weight:600;">Nenhum chamado cadastrado.</p>
                         </div>`;
                     return;
                 }
 
                 demandasAtivas.forEach((d) => {
                     let prazoTexto = d.prazo_limite || "Não definido";
+                    const responsavelStatus = d.status_alterado_por;
+                    let alteracaoStatusTexto = 'Não registrada';
+                    if (responsavelStatus && responsavelStatus.nome) {
+                        const dataAlteracao = d.status_alterado_em?.toDate
+                            ? d.status_alterado_em.toDate()
+                            : d.status_alterado_em ? new Date(d.status_alterado_em) : null;
+                        const dataTexto = dataAlteracao && !isNaN(dataAlteracao) ? ` em ${dataAlteracao.toLocaleString('pt-BR')}` : '';
+                        alteracaoStatusTexto = `${responsavelStatus.nome} (${responsavelStatus.cargo || 'cargo não informado'})${dataTexto}`;
+                    }
                     let corStatus = 'var(--status-pendente)';
                     if(d.status === 'Em Andamento') corStatus = 'var(--status-andamento)';
+                    if(d.status === 'Concluído') corStatus = 'var(--status-concluido)';
+                    if(d.status === 'Cancelado') corStatus = 'var(--status-cancelado)';
 
                     d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
+                    alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
                     container.innerHTML += `
                         <div class="card-demanda">
                             <div class="header-demanda">
@@ -145,6 +216,7 @@
                             <div class="detalhe"><b>Instituição/Unidade:</b> ${d.unidade_atendida || 'Não informada'}</div>
                             <div class="detalhe"><b>Colaborador Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
                             <div class="detalhe"><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
+                            <div class="detalhe"><b>Última alteração de status:</b> ${alteracaoStatusTexto}</div>
                             
                             <div class="caixa-descricao">
                                 <b>Solicitação do Supervisor:</b><br>
@@ -154,6 +226,7 @@
                             <textarea class="observacao-box" id="obs-${d.idDoc}" rows="2" placeholder="Digite aqui o parecer técnico do atendimento...">${d.observacao_tecnico || ''}</textarea>
                             
                             <div class="acoes-grupo">
+                                <button class="btn-acao" style="background: var(--status-pendente)" data-demanda-id="${d.idDoc}" data-novo-status="Pendente">Pendente</button>
                                 <button class="btn-acao" style="background: var(--status-andamento)" data-demanda-id="${d.idDoc}" data-novo-status="Em Andamento">Iniciar</button>
                                 <button class="btn-acao" style="background: var(--status-concluido)" data-demanda-id="${d.idDoc}" data-novo-status="Concluído">Concluir</button>
                                 <button class="btn-acao" style="background: var(--status-cancelado)" data-demanda-id="${d.idDoc}" data-novo-status="Cancelado">Cancelar</button>
@@ -162,12 +235,14 @@
                     `;
                 });
             }, (error) => {
-                 mostrarErroNaTela("⛔ ERRO DE LEITURA (Regras do Firebase):<br>Você não tem permissão para ler as demandas. Ajuste as Rules no console do Firestore.");
+                 console.error("Erro ao carregar demandas:", error);
+                 mostrarErroNaTela(`⛔ ERRO AO CARREGAR DEMANDAS:<br>${escapeHtml(error.code || 'erro-desconhecido')}<br><small>${escapeHtml(error.message || 'Falha na leitura do Firestore.')}</small>`);
             });
         }
 
         async function mudarStatusOs(idDoc, novoStatus) {
             if (!STATUS_PERMITIDOS.has(novoStatus)) return;
+            if (!perfilUsuarioAtual) return;
             if (!demandasVisiveis.has(idDoc)) {
                 alert("Você não tem permissão para alterar esta demanda.");
                 return;
@@ -179,16 +254,11 @@
             }
             const docRef = doc(db, "demandas", idDoc);
             try {
-                if (cargoUsuario === 'ti') {
-                    const demandaDoc = await getDoc(docRef);
-                    if (!demandaDoc.exists() || demandaDoc.data().tipo_manutencao !== 'TI') {
-                        alert("O cargo TI só pode alterar demandas da categoria TI.");
-                        return;
-                    }
-                }
                 await updateDoc(docRef, { 
                     status: novoStatus, 
                     observacao_tecnico: txtObservacao,
+                    status_alterado_por: perfilUsuarioAtual,
+                    status_alterado_em: serverTimestamp(),
                     ...(novoStatus === 'Concluído' || novoStatus === 'Cancelado' ? { concluido_em: new Date().toISOString() } : {})
                 });
                 alert(`Sucesso! Status alterado para: ${novoStatus}`);
@@ -196,6 +266,41 @@
                 alert("Falha ao salvar dados.");
             }
         }
+
+        document.getElementById('formDemanda').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!perfilUsuarioAtual) return;
+
+            const payload = {
+                tipo_manutencao: document.getElementById('tipoManutencao').value,
+                unidade_atendida: document.getElementById('unidadeAtendida').value.trim(),
+                quem_atendido: document.getElementById('quemAtendido').value.trim(),
+                prioridade: document.getElementById('prioridade').value,
+                descricao: document.getElementById('descricao').value.trim(),
+                status: 'Pendente',
+                prazo_limite: new Date().toISOString(),
+                observacao_tecnico: '',
+                status_alterado_por: perfilUsuarioAtual,
+                status_alterado_em: serverTimestamp()
+            };
+
+            try {
+                let protocolo;
+                await runTransaction(db, async (transaction) => {
+                    const contadorRef = doc(db, 'configuracoes', 'contador_protocolo');
+                    const contadorDoc = await transaction.get(contadorRef);
+                    protocolo = contadorDoc.exists() ? Number(contadorDoc.data().ultimo_numero || 999) + 1 : 1000;
+                    transaction.set(contadorRef, { ultimo_numero: protocolo }, { merge: true });
+                    transaction.set(doc(collection(db, 'demandas')), { ...payload, protocolo });
+                });
+                alert(`Chamado #${protocolo} aberto com sucesso!`);
+                event.target.reset();
+            } catch (error) {
+                console.error('Erro ao abrir chamado:', error);
+                alert(`Falha ao abrir chamado: ${error.code || 'erro-desconhecido'}`);
+            }
+        });
+
         document.addEventListener('click', (event) => {
             const botao = event.target.closest('[data-demanda-id]');
             if (botao) mudarStatusOs(botao.dataset.demandaId, botao.dataset.novoStatus);

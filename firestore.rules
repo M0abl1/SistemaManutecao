@@ -1,0 +1,255 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Modelo de dados assumido
+    // ===============================================================
+    // usuarios/{uid}: nome, email, cargo, criado_em
+    // demandas/{id}: protocolo, tipo_manutencao, unidade_atendida,
+    //   quem_atendido, prioridade, descricao, status, observacao_tecnico,
+    //   prazo_limite ou criado_em e, opcionalmente, concluido_em
+    // unidades/{id}: nome, endereco, criado_em e, opcionalmente, id_unidade
+    // configuracoes/{contador}: ultimo_numero
+
+    // ===============================================================
+    // Funções comuns
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner(data) {
+      return isAuthenticated() &&
+        (!('uid' in data) || data.uid == request.auth.uid);
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified(before, after) {
+      return !('uid' in after) ||
+        (('uid' in before) && after.uid == before.uid);
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function hasProfile() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function isSupervisor() {
+      return hasProfile() && profile().data.cargo in ['supervisor', 'Supervisor', 'SUPERVISOR'];
+    }
+
+    function isOperational() {
+      return hasProfile() && profile().data.cargo in [
+        'supervisor', 'Supervisor', 'SUPERVISOR',
+        'tecnico', 'Tecnico', 'TECNICO', 'técnico', 'Técnico', 'TÉCNICO',
+        'ti', 'TI', 'Ti'
+      ];
+    }
+
+    function validText(value, minSize, maxSize) {
+      return value is string &&
+        value.size() >= minSize && value.size() <= maxSize;
+    }
+
+    function validIsoDate(value) {
+      return value is string && value.size() >= 20 && value.size() <= 40 &&
+        value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.*$');
+    }
+
+    function validOptionalIsoDate(data, field) {
+      return !(field in data) || validIsoDate(data[field]);
+    }
+
+    function validOptionalDemandDate(data, field) {
+      return !(field in data) || validIsoDate(data[field]) ||
+        (data[field] is string && data[field].size() >= 16 &&
+         data[field].size() <= 100 && data[field].matches('^Solicitado em:.*$'));
+    }
+
+    function validOptionalText(data, field, maxSize) {
+      return !(field in data) || validText(data[field], 0, maxSize);
+    }
+
+    function validStatusActor(actor) {
+      return actor is map &&
+        actor.keys().hasAll(['uid', 'nome', 'cargo']) &&
+        actor.keys().hasOnly(['uid', 'nome', 'cargo']) &&
+        validText(actor.uid, 1, 128) &&
+        validText(actor.nome, 1, 120) &&
+        actor.cargo in [
+          'supervisor', 'Supervisor', 'SUPERVISOR',
+          'tecnico', 'Tecnico', 'TECNICO', 'técnico', 'Técnico', 'TÉCNICO',
+          'ti', 'TI', 'Ti'
+        ];
+    }
+
+    function validOptionalStatusAudit(data) {
+      return (!('status_alterado_por' in data) && !('status_alterado_em' in data)) ||
+        (('status_alterado_por' in data) && ('status_alterado_em' in data) &&
+         validStatusActor(data.status_alterado_por) &&
+         data.status_alterado_em is timestamp);
+    }
+
+    // ===============================================================
+    // Validadores de domínio, usados em create e update
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['nome', 'email', 'cargo', 'criado_em']) &&
+        data.keys().hasOnly(['nome', 'email', 'cargo', 'criado_em']) &&
+        validText(data.nome, 1, 120) &&
+        validText(data.email, 3, 254) &&
+        data.email.matches('^[^@]+@[^@]+[.][^@]+$') &&
+        data.cargo in ['supervisor', 'tecnico', 'ti', 'pendente'] &&
+        validIsoDate(data.criado_em);
+    }
+
+    function isValidDemanda(data) {
+      return data.keys().hasAll([
+          'protocolo', 'tipo_manutencao', 'unidade_atendida',
+          'quem_atendido', 'prioridade', 'descricao', 'status',
+          'observacao_tecnico'
+        ]) &&
+        data.keys().hasOnly([
+          'protocolo', 'tipo_manutencao', 'unidade_atendida',
+          'quem_atendido', 'prioridade', 'descricao', 'status',
+          'observacao_tecnico', 'prazo_limite', 'criado_em', 'concluido_em',
+          'status_alterado_por', 'status_alterado_em'
+        ]) &&
+        ('prazo_limite' in data || 'criado_em' in data) &&
+        data.protocolo is int && data.protocolo >= 1000 && data.protocolo <= 999999999 &&
+        data.tipo_manutencao in [
+          'Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza',
+          'Marcenaria', 'Alvenaria', 'Geral', 'TI'
+        ] &&
+        validText(data.unidade_atendida, 1, 200) &&
+        validText(data.quem_atendido, 0, 200) &&
+        data.prioridade in ['Baixa', 'Média', 'Alta'] &&
+        validText(data.descricao, 0, 3000) &&
+        data.status in ['Pendente', 'Em Andamento', 'Concluído', 'Cancelado'] &&
+        validText(data.observacao_tecnico, 0, 5000) &&
+        validOptionalDemandDate(data, 'prazo_limite') &&
+        validOptionalIsoDate(data, 'criado_em') &&
+        validOptionalIsoDate(data, 'concluido_em') &&
+        validOptionalStatusAudit(data);
+    }
+
+    function isValidUnidade(data) {
+      return data.keys().hasAll(['nome', 'endereco', 'criado_em']) &&
+        data.keys().hasOnly(['nome', 'endereco', 'criado_em', 'id_unidade']) &&
+        validText(data.nome, 1, 200) &&
+        validText(data.endereco, 1, 500) &&
+        validIsoDate(data.criado_em) &&
+        validOptionalText(data, 'id_unidade', 30);
+    }
+
+    function isValidCounter(data) {
+      return data.keys().hasAll(['ultimo_numero']) &&
+        data.keys().hasOnly(['ultimo_numero']) &&
+        data.ultimo_numero is int &&
+        data.ultimo_numero >= 0 && data.ultimo_numero <= 999999999;
+    }
+
+    function canReadDemanda() {
+      return isOperational();
+    }
+
+    function canOperationalUpdateDemanda() {
+      return isOperational() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'status', 'observacao_tecnico', 'concluido_em',
+            'status_alterado_por', 'status_alterado_em'
+          ]) &&
+        request.resource.data.status in [
+          'Pendente', 'Em Andamento', 'Concluído', 'Cancelado'
+        ] &&
+        (!(request.resource.data.status in ['Concluído', 'Cancelado']) ||
+          (validText(request.resource.data.observacao_tecnico, 1, 5000) &&
+           'concluido_em' in request.resource.data));
+    }
+
+    function statusAuditMatchesRequester(data) {
+      return ('status_alterado_por' in data) &&
+        ('status_alterado_em' in data) &&
+        validStatusActor(data.status_alterado_por) &&
+        data.status_alterado_em is timestamp &&
+        data.status_alterado_em == request.time &&
+        data.status_alterado_por.uid == request.auth.uid &&
+        data.status_alterado_por.nome == profile().data.nome &&
+        data.status_alterado_por.cargo == profile().data.cargo;
+    }
+
+    function isValidCounterCreate(configId, data) {
+      return isValidCounter(data) &&
+        ((configId == 'contador_protocolo' && data.ultimo_numero == 1000) ||
+         (configId == 'contador_unidades' && data.ultimo_numero == 100));
+    }
+
+    function isValidCounterUpdate(data) {
+      return isValidCounter(data) &&
+        data.ultimo_numero == resource.data.ultimo_numero + 1;
+    }
+
+    match /usuarios/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isValidUser(request.resource.data) &&
+        isDocOwner(request.resource.data) &&
+        uidUnchanged() &&
+        request.resource.data.cargo == 'tecnico' &&
+        request.resource.data.email == request.auth.token.email;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /demandas/{demandaId} {
+      allow read: if canReadDemanda();
+      allow create: if isOperational() &&
+        isValidDemanda(request.resource.data) &&
+        statusAuditMatchesRequester(request.resource.data) &&
+        getAfter(/databases/$(database)/documents/configuracoes/contador_protocolo)
+          .data.ultimo_numero == request.resource.data.protocolo;
+      allow update: if isValidDemanda(request.resource.data) &&
+        uidNotModified(resource.data, request.resource.data) &&
+        statusAuditMatchesRequester(request.resource.data) &&
+        canOperationalUpdateDemanda();
+      allow delete: if false;
+    }
+
+    match /unidades/{unidadeId} {
+      allow read: if isOperational();
+      allow create: if isSupervisor() && isValidUnidade(request.resource.data);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /configuracoes/{configId} {
+      allow read: if isOperational() &&
+        configId in ['contador_protocolo', 'contador_unidades'];
+      allow create: if isOperational() &&
+        configId in ['contador_protocolo', 'contador_unidades'] &&
+        isValidCounterCreate(configId, request.resource.data);
+      allow update: if isOperational() &&
+        configId in ['contador_protocolo', 'contador_unidades'] &&
+        isValidCounterUpdate(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
