@@ -5,7 +5,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 ## Recursos
 
 - Login com conta Google.
-- Controle de acesso por perfil: `supervisor` e `tecnico`.
+- Controle de acesso por perfil: `supervisor`, `tecnico` e `ti`.
 - Cadastro de unidades/setores e abertura de chamados.
 - Numeração sequencial de protocolos.
 - Atualização em tempo real das demandas.
@@ -20,6 +20,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 | --- | --- |
 | Supervisor | Cadastra unidades, abre chamados, consulta a fila completa e atualiza qualquer demanda. |
 | Técnico | Consulta demandas ativas, registra o parecer técnico e atualiza o status do atendimento. |
+| TI | Consulta e atualiza somente demandas ativas da categoria TI. |
 
 Os perfis ficam na coleção `usuarios` do Firestore, vinculados ao UID da conta autenticada.
 
@@ -64,6 +65,8 @@ Não abra o arquivo diretamente pelo explorador (`file://`), pois os módulos Ja
 
 Novos usuários autenticados entram como `tecnico`.
 
+Para liberar um profissional de TI, defina `"cargo": "ti"` no documento `usuarios/{uid}`. O supervisor continua vendo as demandas de todas as categorias.
+
 > A configuração web do Firebase identifica a aplicação no navegador. Não inclua no repositório chaves de conta de serviço, senhas ou arquivos do Admin SDK.
 
 ## Publicação no Firebase Hosting
@@ -82,3 +85,16 @@ Mantenha as regras do Firestore restritivas: a interface sozinha não substitui 
 - Firebase Authentication
 - Cloud Firestore
 - Firebase Hosting
+
+## Documentação
+
+- [Configuração e implantação](docs/CONFIGURACAO.md)
+- [Perfis, permissões e operação](docs/OPERACAO.md)
+- [Modelo de dados do Firestore](docs/MODELO_DADOS.md)
+
+## Validação manual recomendada
+
+1. Entre como `supervisor`, crie uma demanda TI e outra de qualquer categoria e confirme que ambas aparecem no painel.
+2. Entre como `ti` e confirme que somente a demanda TI ativa é exibida e pode ser atualizada.
+3. Entre como `tecnico` e confirme que as demandas ativas continuam disponíveis conforme a regra atual.
+4. Conclua ou cancele uma demanda com parecer preenchido e confira o registro no painel do supervisor.

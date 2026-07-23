@@ -35,7 +35,7 @@ export class LoginController {
             }
 
             // 2. REDIRECIONAMENTO IMEDIATO
-            if (perfil && (perfil.cargo === 'supervisor' || perfil.cargo === 'tecnico')) {
+            if (perfil && (perfil.cargo === 'supervisor' || perfil.cargo === 'tecnico' || perfil.cargo === 'ti')) {
                 this.redirecionarPorCargo(perfil.cargo);
                 return;
             }
@@ -47,7 +47,7 @@ export class LoginController {
 
                 this.authModel.escutarMudancaCargo(usuarioLogado.uid, (perfilAtualizado) => {
                     Logger.info('LoginController', 'Atualização de cargo capturada em tempo real', { cargo: perfilAtualizado.cargo });
-                    if (perfilAtualizado.cargo === 'supervisor' || perfilAtualizado.cargo === 'tecnico') {
+                    if (perfilAtualizado.cargo === 'supervisor' || perfilAtualizado.cargo === 'tecnico' || perfilAtualizado.cargo === 'ti') {
                         this.redirecionarPorCargo(perfilAtualizado.cargo);
                     }
                 });
@@ -62,6 +62,6 @@ export class LoginController {
     redirecionarPorCargo(cargo) {
         Logger.info('LoginController.redirecionarPorCargo', `Redirecionando usuário para tela de ${cargo}`);
         if (cargo === 'supervisor') window.location.href = 'views/supervisor.html';
-        if (cargo === 'tecnico') window.location.href = 'views/tecnico.html';
+        if (cargo === 'tecnico' || cargo === 'ti') window.location.href = 'views/tecnico.html';
     }
 }
