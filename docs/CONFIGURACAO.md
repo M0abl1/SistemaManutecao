@@ -41,7 +41,7 @@ A filtragem da interface melhora a experiência, mas não é uma barreira de seg
 - restringir a atualização técnica aos campos operacionais, como `status`, `observacao_tecnico` e `concluido_em`;
 - permitir que apenas supervisores cadastrem unidades e novas demandas.
 
-Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. A consulta do cargo TI usa `where("tipo_manutencao", "==", "TI")`, enquanto a consulta do técnico comum usa `where("tipo_manutencao", "!=", "TI")`.
+Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. A consulta do cargo TI usa `where("tipo_manutencao", "==", "TI")`, enquanto a consulta do técnico comum usa uma lista positiva com `where("tipo_manutencao", "in", [...categorias])`. Assim, nenhuma consulta técnica pode incluir TI no conjunto potencial de resultados.
 
 ## Execução local
 

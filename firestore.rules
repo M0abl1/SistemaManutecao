@@ -87,6 +87,22 @@ service cloud.firestore {
       return !(field in data) || validText(data[field], 0, maxSize);
     }
 
+    function validStatusActor(actor) {
+      return actor is map &&
+        actor.keys().hasAll(['uid', 'nome', 'cargo']) &&
+        actor.keys().hasOnly(['uid', 'nome', 'cargo']) &&
+        validText(actor.uid, 1, 128) &&
+        validText(actor.nome, 1, 120) &&
+        actor.cargo in ['supervisor', 'tecnico', 'ti'];
+    }
+
+    function validOptionalStatusAudit(data) {
+      return (!('status_alterado_por' in data) && !('status_alterado_em' in data)) ||
+        (('status_alterado_por' in data) && ('status_alterado_em' in data) &&
+         validStatusActor(data.status_alterado_por) &&
+         data.status_alterado_em is timestamp);
+    }
+
     // ===============================================================
     // Validadores de domínio, usados em create e update
     // ===============================================================
@@ -109,13 +125,14 @@ service cloud.firestore {
         data.keys().hasOnly([
           'protocolo', 'tipo_manutencao', 'unidade_atendida',
           'quem_atendido', 'prioridade', 'descricao', 'status',
-          'observacao_tecnico', 'prazo_limite', 'criado_em', 'concluido_em'
+          'observacao_tecnico', 'prazo_limite', 'criado_em', 'concluido_em',
+          'status_alterado_por', 'status_alterado_em'
         ]) &&
         ('prazo_limite' in data || 'criado_em' in data) &&
         data.protocolo is int && data.protocolo >= 1000 && data.protocolo <= 999999999 &&
         data.tipo_manutencao in [
           'Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza',
-          'Marcenaria', 'Alvenaria', 'TI'
+          'Marcenaria', 'Alvenaria', 'Geral', 'TI'
         ] &&
         validText(data.unidade_atendida, 1, 200) &&
         validText(data.quem_atendido, 0, 200) &&
@@ -125,7 +142,8 @@ service cloud.firestore {
         validText(data.observacao_tecnico, 0, 5000) &&
         validOptionalDemandDate(data, 'prazo_limite') &&
         validOptionalIsoDate(data, 'criado_em') &&
-        validOptionalIsoDate(data, 'concluido_em');
+        validOptionalIsoDate(data, 'concluido_em') &&
+        validOptionalStatusAudit(data);
     }
 
     function isValidUnidade(data) {
@@ -144,16 +162,26 @@ service cloud.firestore {
         data.ultimo_numero >= 0 && data.ultimo_numero <= 999999999;
     }
 
+    function isCategoriaTecnica(data) {
+      return data.tipo_manutencao in [
+        'Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza',
+        'Marcenaria', 'Alvenaria', 'Geral'
+      ];
+    }
+
     function canReadDemanda(data) {
       return isSupervisor() ||
         (isTi() && data.tipo_manutencao == 'TI') ||
-        (isTecnico() && data.tipo_manutencao != 'TI');
+        (isTecnico() && isCategoriaTecnica(data));
     }
 
     function canTecnicoUpdateDemanda() {
       return resource.data.status in ['Pendente', 'Em Andamento'] &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'observacao_tecnico', 'concluido_em']) &&
+          .hasOnly([
+            'status', 'observacao_tecnico', 'concluido_em',
+            'status_alterado_por', 'status_alterado_em'
+          ]) &&
         request.resource.data.status in [
           'Pendente', 'Em Andamento', 'Concluído', 'Cancelado'
         ] &&
@@ -161,13 +189,27 @@ service cloud.firestore {
           (validText(request.resource.data.observacao_tecnico, 1, 5000) &&
            'concluido_em' in request.resource.data)) &&
         ((isTi() && resource.data.tipo_manutencao == 'TI') ||
-         (isTecnico() && resource.data.tipo_manutencao != 'TI'));
+         (isTecnico() && isCategoriaTecnica(resource.data)));
     }
 
     function canSupervisorUpdateDemanda() {
       return isSupervisor() &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'observacao_tecnico', 'concluido_em']);
+          .hasOnly([
+            'status', 'observacao_tecnico', 'concluido_em',
+            'status_alterado_por', 'status_alterado_em'
+          ]);
+    }
+
+    function statusAuditMatchesRequester(data) {
+      return ('status_alterado_por' in data) &&
+        ('status_alterado_em' in data) &&
+        validStatusActor(data.status_alterado_por) &&
+        data.status_alterado_em is timestamp &&
+        data.status_alterado_em == request.time &&
+        data.status_alterado_por.uid == request.auth.uid &&
+        data.status_alterado_por.nome == profile().data.nome &&
+        data.status_alterado_por.cargo == profile().data.cargo;
     }
 
     function isValidCounterCreate(configId, data) {
@@ -197,10 +239,12 @@ service cloud.firestore {
       allow read: if canReadDemanda(resource.data);
       allow create: if isSupervisor() &&
         isValidDemanda(request.resource.data) &&
+        statusAuditMatchesRequester(request.resource.data) &&
         getAfter(/databases/$(database)/documents/configuracoes/contador_protocolo)
           .data.ultimo_numero == request.resource.data.protocolo;
       allow update: if isValidDemanda(request.resource.data) &&
         uidNotModified(resource.data, request.resource.data) &&
+        statusAuditMatchesRequester(request.resource.data) &&
         (canSupervisorUpdateDemanda() || canTecnicoUpdateDemanda());
       allow delete: if false;
     }

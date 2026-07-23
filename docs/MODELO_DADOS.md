@@ -25,6 +25,8 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | `prazo_limite` | string ISO 8601 | Sim na tela atual | Data usada como abertura na interface atual |
 | `observacao_tecnico` | string | Sim | Parecer do atendimento; começa vazio |
 | `concluido_em` | string ISO 8601 | Condicional | Gravado ao concluir ou cancelar |
+| `status_alterado_por` | map | Após nova alteração | UID, nome e cargo de quem alterou o status |
+| `status_alterado_em` | timestamp | Após nova alteração | Data e hora confiável gerada pelo servidor |
 
 A restrição do cargo TI depende de `tipo_manutencao` ser exatamente `TI`. Não renomeie esse valor sem atualizar a consulta, as regras do Firestore e os dados existentes.
 

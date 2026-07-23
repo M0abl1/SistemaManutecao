@@ -34,7 +34,7 @@
     <!-- SCRIPT BLINDADO (Fim do Loop) -->
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Em Andamento', 'Concluído', 'Cancelado']);
@@ -42,7 +42,12 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
         const CARGOS_PERMITIDOS = new Set(['tecnico', 'ti']);
+        const CATEGORIAS_TECNICO = [
+            'Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza',
+            'Marcenaria', 'Alvenaria', 'Geral'
+        ];
         let cargoUsuario = null;
+        let perfilUsuarioAtual = null;
         const demandasVisiveis = new Set();
 
         // Função para mostrar erro sem recarregar a página
@@ -84,6 +89,11 @@
                 }
                 
                 cargoUsuario = userDoc.data().cargo;
+                perfilUsuarioAtual = {
+                    uid: user.uid,
+                    nome: userDoc.data().nome || user.displayName || 'Profissional',
+                    cargo: cargoUsuario
+                };
                 document.getElementById('nomeTecnico').innerText = cargoUsuario === 'ti'
                     ? `${user.displayName || "Profissional"} - TI`
                     : user.displayName || "Técnico(a)";
@@ -101,7 +111,7 @@
         function inicializarFilaTempoReal(cargo) {
             const q = cargo === 'ti'
                 ? query(collection(db, "demandas"), where("tipo_manutencao", "==", "TI"))
-                : query(collection(db, "demandas"), where("tipo_manutencao", "!=", "TI"));
+                : query(collection(db, "demandas"), where("tipo_manutencao", "in", CATEGORIAS_TECNICO));
             
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('listaOrdens');
@@ -131,10 +141,20 @@
 
                 demandasAtivas.forEach((d) => {
                     let prazoTexto = d.prazo_limite || "Não definido";
+                    const responsavelStatus = d.status_alterado_por;
+                    let alteracaoStatusTexto = 'Não registrada';
+                    if (responsavelStatus && responsavelStatus.nome) {
+                        const dataAlteracao = d.status_alterado_em?.toDate
+                            ? d.status_alterado_em.toDate()
+                            : d.status_alterado_em ? new Date(d.status_alterado_em) : null;
+                        const dataTexto = dataAlteracao && !isNaN(dataAlteracao) ? ` em ${dataAlteracao.toLocaleString('pt-BR')}` : '';
+                        alteracaoStatusTexto = `${responsavelStatus.nome} (${responsavelStatus.cargo || 'cargo não informado'})${dataTexto}`;
+                    }
                     let corStatus = 'var(--status-pendente)';
                     if(d.status === 'Em Andamento') corStatus = 'var(--status-andamento)';
 
                     d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
+                    alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
                     container.innerHTML += `
                         <div class="card-demanda">
                             <div class="header-demanda">
@@ -145,6 +165,7 @@
                             <div class="detalhe"><b>Instituição/Unidade:</b> ${d.unidade_atendida || 'Não informada'}</div>
                             <div class="detalhe"><b>Colaborador Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
                             <div class="detalhe"><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
+                            <div class="detalhe"><b>Última alteração de status:</b> ${alteracaoStatusTexto}</div>
                             
                             <div class="caixa-descricao">
                                 <b>Solicitação do Supervisor:</b><br>
@@ -162,12 +183,14 @@
                     `;
                 });
             }, (error) => {
-                 mostrarErroNaTela("⛔ ERRO DE LEITURA (Regras do Firebase):<br>Você não tem permissão para ler as demandas. Ajuste as Rules no console do Firestore.");
+                 console.error("Erro ao carregar demandas:", error);
+                 mostrarErroNaTela(`⛔ ERRO AO CARREGAR DEMANDAS:<br>${escapeHtml(error.code || 'erro-desconhecido')}<br><small>${escapeHtml(error.message || 'Falha na leitura do Firestore.')}</small>`);
             });
         }
 
         async function mudarStatusOs(idDoc, novoStatus) {
             if (!STATUS_PERMITIDOS.has(novoStatus)) return;
+            if (!perfilUsuarioAtual) return;
             if (!demandasVisiveis.has(idDoc)) {
                 alert("Você não tem permissão para alterar esta demanda.");
                 return;
@@ -189,6 +212,8 @@
                 await updateDoc(docRef, { 
                     status: novoStatus, 
                     observacao_tecnico: txtObservacao,
+                    status_alterado_por: perfilUsuarioAtual,
+                    status_alterado_em: serverTimestamp(),
                     ...(novoStatus === 'Concluído' || novoStatus === 'Cancelado' ? { concluido_em: new Date().toISOString() } : {})
                 });
                 alert(`Sucesso! Status alterado para: ${novoStatus}`);
