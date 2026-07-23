@@ -47,7 +47,9 @@
                     </label>
                 </div>
                 <label>Unidade / setor
-                    <input id="unidadeAtendida" required maxlength="200">
+                    <select id="unidadeAtendida" required>
+                        <option value="" disabled selected>Carregando unidades...</option>
+                    </select>
                 </label>
                 <label>Quem será atendido
                     <input id="quemAtendido" maxlength="200">
@@ -130,6 +132,7 @@
                     ? `${user.displayName || "Profissional"} - TI`
                     : user.displayName || "Técnico(a)";
                 document.getElementById('telaErro').style.display = 'none';
+                inicializarUnidades();
                 inicializarFilaTempoReal();
 
             } catch (error) {
@@ -139,6 +142,26 @@
                 window.location.replace('../index.html');
             }
         });
+
+        function inicializarUnidades() {
+            const select = document.getElementById('unidadeAtendida');
+            onSnapshot(query(collection(db, 'unidades')), (snapshot) => {
+                const unidades = [];
+                snapshot.forEach(documento => {
+                    const unidade = documento.data();
+                    if (unidade.nome) unidades.push(unidade.nome);
+                });
+                unidades.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                select.innerHTML = '<option value="" disabled selected>Selecione a unidade...</option>' +
+                    unidades.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
+                if (unidades.length === 0) {
+                    select.innerHTML = '<option value="" disabled selected>Nenhuma unidade cadastrada</option>';
+                }
+            }, (error) => {
+                console.error('Erro ao carregar unidades:', error);
+                select.innerHTML = `<option value="" disabled selected>Erro: ${escapeHtml(error.code || 'falha-na-leitura')}</option>`;
+            });
+        }
 
         function inicializarFilaTempoReal() {
             const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));

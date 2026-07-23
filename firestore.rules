@@ -226,7 +226,7 @@ service cloud.firestore {
     }
 
     match /unidades/{unidadeId} {
-      allow read: if isSupervisor();
+      allow read: if isOperational();
       allow create: if isSupervisor() && isValidUnidade(request.resource.data);
       allow update: if false;
       allow delete: if false;

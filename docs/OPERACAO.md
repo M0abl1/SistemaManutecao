@@ -23,6 +23,8 @@ O protocolo é sequencial e controlado pelo documento `configuracoes/contador_pr
 
 O cargo `tecnico` usa o painel colaborativo para abrir, visualizar e atualizar chamados de qualquer categoria e status. Também pode preencher ou editar o relato técnico.
 
+Ao abrir um chamado, a unidade deve ser escolhida na lista mantida pelo supervisor. Técnico e TI podem consultar unidades, mas somente o supervisor pode cadastrá-las.
+
 O parecer é obrigatório para concluir ou cancelar uma demanda.
 
 ## TI
