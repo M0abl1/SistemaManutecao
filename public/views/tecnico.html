@@ -195,6 +195,13 @@
                 const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
                 filtradas.sort((a, b) => (ordemPrioridade[a.prioridade] ?? 3) - (ordemPrioridade[b.prioridade] ?? 3)
                     || Number(b.protocolo || 0) - Number(a.protocolo || 0));
+            } else {
+                const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
+                    : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
+                filtradas.sort((a, b) => grupoStatus(a.status) - grupoStatus(b.status)
+                    || (grupoStatus(a.status) === 0
+                        ? Number(a.protocolo || 0) - Number(b.protocolo || 0)
+                        : Number(b.protocolo || 0) - Number(a.protocolo || 0)));
             }
             if (!filtradas.length) {
                 container.innerHTML = '<div class="estado-lista">Nenhuma demanda encontrada.</div>';

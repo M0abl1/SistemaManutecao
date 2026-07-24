@@ -10,6 +10,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Pesquisa de escola/unidade em lista suspensa ao abrir um chamado.
 - Numeração sequencial de protocolos.
 - Atualização em tempo real das demandas.
+- Ordenação padrão com pendentes/em andamento mais antigos primeiro e concluídas abaixo.
 - Alteração do status: **Pendente**, **Em Andamento**, **Concluído** e **Cancelado**.
 - Parecer técnico obrigatório ao concluir ou cancelar uma demanda.
 - Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.

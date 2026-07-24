@@ -527,12 +527,17 @@ if (d.prazo_limite) {
             });
 
             const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+            const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
+                : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
             ['listaGeral', 'listaPendentes', 'listaAndamento', 'listaConcluidas', 'listaCanceladas'].forEach(id => {
                 const container = document.getElementById(id);
                 const cardsContainer = Array.from(container.children).filter(item => item.classList.contains('card-demanda'));
                 cardsContainer.sort((a, b) => modoPrioridade
                     ? (ordemPrioridade[a.dataset.prioridade] ?? 3) - (ordemPrioridade[b.dataset.prioridade] ?? 3) || Number(b.dataset.protocolo) - Number(a.dataset.protocolo)
-                    : Number(b.dataset.protocolo) - Number(a.dataset.protocolo));
+                    : grupoStatus(a.dataset.status) - grupoStatus(b.dataset.status)
+                        || (grupoStatus(a.dataset.status) === 0
+                            ? Number(a.dataset.protocolo) - Number(b.dataset.protocolo)
+                            : Number(b.dataset.protocolo) - Number(a.dataset.protocolo)));
                 cardsContainer.forEach(card => container.appendChild(card));
             });
         }
