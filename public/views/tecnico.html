@@ -173,8 +173,8 @@
 
         function demandaAtendeFiltros(demanda) {
             const campo = document.getElementById('filtroBusca').value;
-            if (campo === 'prioridade' && demanda.status !== 'Pendente') return false;
-            if (campo !== 'prioridade' && filtroStatus !== 'todos' && demanda.status !== filtroStatus) return false;
+            const statusAlvo = filtroStatus !== 'todos' ? filtroStatus : campo === 'prioridade' ? 'Pendente' : null;
+            if (statusAlvo && demanda.status !== statusAlvo) return false;
             const ehTi = normalizar(demanda.tipo_manutencao) === 'ti';
             if (filtroCategoria === 'ti' && !ehTi) return false;
             if (filtroCategoria === 'geral' && ehTi) return false;

@@ -38,13 +38,13 @@
             <h3>Menu Gestão</h3>
         </div>
         <nav style="display: flex; flex-direction: column; flex: 1;">
-            <div class="menu-item ativo" data-alvo="geral" data-categoria="todas"><span>📋</span> Todas as Demandas</div>
-            <div class="menu-item" data-alvo="geral" data-categoria="ti"><span>💻</span> Demandas de TI</div>
-            <div class="menu-item" data-alvo="geral" data-categoria="geral"><span>🛠️</span> Manutenção Geral</div>
-            <div class="menu-item" data-alvo="pendentes" data-categoria="todas"><span>⏳</span> Pendentes</div>
-            <div class="menu-item" data-alvo="andamento" data-categoria="todas"><span>⚡</span> Em Andamento</div>
-            <div class="menu-item" data-alvo="concluidas" data-categoria="todas"><span>✅</span> Concluídas</div>
-            <div class="menu-item" data-alvo="canceladas" data-categoria="todas"><span>❌</span> Canceladas</div>
+            <div class="menu-item ativo" data-alvo="geral" data-categoria="todas" data-status="todos"><span>📋</span> Todas as Demandas</div>
+            <div class="menu-item" data-alvo="geral" data-categoria="ti" data-status="todos"><span>💻</span> Demandas de TI</div>
+            <div class="menu-item" data-alvo="geral" data-categoria="geral" data-status="todos"><span>🛠️</span> Manutenção Geral</div>
+            <div class="menu-item" data-alvo="pendentes" data-categoria="todas" data-status="Pendente"><span>⏳</span> Pendentes</div>
+            <div class="menu-item" data-alvo="andamento" data-categoria="todas" data-status="Em Andamento"><span>⚡</span> Em Andamento</div>
+            <div class="menu-item" data-alvo="concluidas" data-categoria="todas" data-status="Concluído"><span>✅</span> Concluídas</div>
+            <div class="menu-item" data-alvo="canceladas" data-categoria="todas" data-status="Cancelado"><span>❌</span> Canceladas</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
             <div class="menu-item" id="btnSair" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #ef4444;">
@@ -197,6 +197,7 @@
         const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
+        let supervisorFiltroStatus = 'todos';
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
@@ -219,6 +220,7 @@
                 document.getElementById(`painel-${e.currentTarget.dataset.alvo}`).classList.add('ativa');
                 document.getElementById('tituloPagina').innerText = e.currentTarget.innerText;
                 supervisorFiltroCategoria = e.currentTarget.dataset.categoria || 'todas';
+                supervisorFiltroStatus = e.currentTarget.dataset.status || 'todos';
                 aplicarFiltroBusca();
                 fecharSidebarMobile();
             });
@@ -509,13 +511,14 @@ if (d.prazo_limite) {
             const filtro = document.getElementById('filtroBusca').value;
             const cards = document.querySelectorAll('.card-demanda');
             const modoPrioridade = filtro === 'prioridade';
+            const statusPrioridade = supervisorFiltroStatus !== 'todos' ? supervisorFiltroStatus : 'Pendente';
 
             cards.forEach(card => {
                 const categoriaValida = supervisorFiltroCategoria === 'todas' || card.dataset.categoria === supervisorFiltroCategoria;
                 const campo = filtro === 'protocolo' ? card.dataset.protocolo
                     : filtro === 'data' ? card.dataset.data
                     : card.innerText;
-                const buscaValida = modoPrioridade ? card.dataset.status === 'Pendente' : campo.toLowerCase().includes(termoBusca);
+                const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : campo.toLowerCase().includes(termoBusca);
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
             });
 
@@ -536,12 +539,6 @@ if (d.prazo_limite) {
             input.type = event.target.value === 'data' ? 'date' : 'search';
             input.disabled = event.target.value === 'prioridade';
             input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
-            if (event.target.value === 'prioridade') {
-                document.querySelectorAll('.secao-painel').forEach(secao => secao.classList.remove('ativa'));
-                document.getElementById('painel-geral').classList.add('ativa');
-                document.getElementById('tituloPagina').innerText = 'Pendentes por Prioridade';
-                supervisorFiltroCategoria = 'todas';
-            }
             aplicarFiltroBusca();
         });
         // Logout

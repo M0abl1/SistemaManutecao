@@ -38,7 +38,7 @@ O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões oper
 - **Demandas de TI:** mostra somente `tipo_manutencao = TI`.
 - **Manutenção geral:** mostra todas as categorias diferentes de TI.
 - As filas de status mostram pendentes, em andamento, concluídas ou canceladas.
-- Ao selecionar **Prioridade**, a listagem mostra somente demandas pendentes na ordem **Alta, Média e Baixa**.
+- Ao selecionar **Prioridade** em **Todas**, a listagem mostra pendentes na ordem **Alta, Média e Baixa**. Em uma aba de status, a aba prevalece e a ordenação é aplicada somente às demandas daquele status.
 - As demais buscas aceitam número do protocolo e data de solicitação.
 - **Unidades / Setores** aparece somente no painel do supervisor.
 
