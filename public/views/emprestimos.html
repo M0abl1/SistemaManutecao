@@ -20,6 +20,7 @@
         <div class="sidebar-header"><h3>Empréstimos</h3></div>
         <nav>
             <button class="menu-item ativo">📦 Empréstimos</button>
+            <button class="menu-item" id="btnRelatorios">📊 Relatórios</button>
             <button class="menu-item voltar" id="btnDemandas">📋 Voltar às demandas</button>
             <button class="menu-item sair" id="btnSair">🚪 Sair</button>
         </nav>
@@ -219,6 +220,7 @@
             document.getElementById('inputBusca').value = '';
             renderizarEmprestimos();
         });
+        document.getElementById('btnRelatorios').addEventListener('click', () => { window.location.href = 'relatorios.html'; });
         document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     </script>
 </body>

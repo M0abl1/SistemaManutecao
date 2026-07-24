@@ -38,6 +38,10 @@ Todos os usuários operacionais podem excluir uma demanda pelo botão **Excluir 
 
 A sidebar dos painéis possui o botão **Empréstimos**. Todos os perfis operacionais podem acessar a página, registrar e consultar empréstimos. Para registrar, informe produto, pessoa ou setor destinatário, número de tombo, data do empréstimo e data de devolução. A devolução deve ser igual ou posterior à data do empréstimo.
 
+## Relatórios mensais
+
+A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Demandas ainda não concluídas permanecem no relatório com os campos de conclusão não informados. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal.
+
 ## TI
 
 O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões operacionais sobre os chamados. A distinção de cargo permanece apenas para identificação e auditoria de quem realizou cada alteração.

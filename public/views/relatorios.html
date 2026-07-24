@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios de Demandas</title>
+    <link rel="stylesheet" href="../css/tecnico.css">
+    <style>
+        .filtros-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:18px}
+        .filtros-relatorio form{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr)) auto auto;gap:12px;align-items:end}
+        .filtros-relatorio label{display:grid;gap:6px}
+        .btn-imprimir{border:1px solid var(--primaria);border-radius:7px;padding:11px 15px;background:transparent;color:var(--primaria);font-weight:700;cursor:pointer}
+        .cabecalho-relatorio,.unidade-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:16px}
+        .cabecalho-relatorio h2{margin-bottom:8px}.resumo-relatorio{display:flex;gap:18px;flex-wrap:wrap;color:var(--texto-secundario)}
+        .unidade-relatorio h3{margin-bottom:12px;color:var(--primaria)}
+        .tabela-container{overflow-x:auto}.tabela-relatorio{width:100%;border-collapse:collapse;min-width:950px}
+        .tabela-relatorio th,.tabela-relatorio td{padding:10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--borda)}
+        .tabela-relatorio th{background:var(--bg-principal);font-size:13px}.tabela-relatorio td{font-size:14px}
+        .parecer{white-space:pre-wrap;min-width:230px}.solicitacao{white-space:pre-wrap;min-width:260px}
+        .menu-item.voltar{margin-top:auto;border-top:1px solid rgba(255,255,255,.08)}
+        @media(max-width:900px){.filtros-relatorio form{grid-template-columns:1fr 1fr}.filtros-relatorio form label:first-child{grid-column:1/-1}}
+        @media(max-width:520px){.filtros-relatorio form{grid-template-columns:1fr}.filtros-relatorio form label:first-child{grid-column:auto}}
+        @media print{
+            @page{size:A4 landscape;margin:10mm}
+            body{background:#fff;color:#111;font-size:10pt}.sidebar,.sidebar-backdrop,header,.filtros-relatorio,.alerta-erro{display:none!important}
+            .conteudo-principal{margin:0;padding:0;max-width:none}.cabecalho-relatorio,.unidade-relatorio{border:0;padding:0;margin-bottom:14px;box-shadow:none;break-inside:avoid}
+            .unidade-relatorio{break-inside:auto}.unidade-relatorio h3{color:#111;border-bottom:2px solid #111;padding-bottom:5px}
+            .tabela-container{overflow:visible}.tabela-relatorio{min-width:0}.tabela-relatorio th,.tabela-relatorio td{border:1px solid #aaa;padding:5px;color:#111;background:#fff;font-size:8.5pt}
+            .tabela-relatorio tr{break-inside:avoid}.estado-lista{border:0}
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>Relatórios</h3></div>
+        <nav>
+            <button class="menu-item ativo">📊 Relatórios</button>
+            <button class="menu-item" id="btnEmprestimos">📦 Empréstimos</button>
+            <button class="menu-item voltar" id="btnDemandas">📋 Voltar às demandas</button>
+            <button class="menu-item sair" id="btnSair">🚪 Sair</button>
+        </nav>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
+    <main class="conteudo-principal">
+        <header>
+            <button class="btn-toggle" id="btnToggleSidebar" aria-label="Abrir menu">☰</button>
+            <div>
+                <h1>Relatórios de demandas</h1>
+                <p id="nomeUsuario">Lendo sessão...</p>
+            </div>
+        </header>
+
+        <div id="telaErro" class="alerta-erro" hidden></div>
+
+        <section class="filtros-relatorio">
+            <form id="formRelatorio">
+                <label>Mês de referência
+                    <input id="mesReferencia" type="month" required>
+                </label>
+                <label>Categoria
+                    <select id="categoriaRelatorio">
+                        <option value="ti">TI</option>
+                        <option value="geral">Manutenção geral</option>
+                    </select>
+                </label>
+                <label>Unidade
+                    <select id="unidadeRelatorio"><option value="todas">Todas as unidades</option></select>
+                </label>
+                <button class="btn-criar" type="submit">Emitir relatório</button>
+                <button class="btn-imprimir" id="btnImprimir" type="button">Imprimir / PDF</button>
+            </form>
+        </section>
+
+        <section id="relatorioGerado">
+            <div class="estado-lista">Carregando demandas...</div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { db, auth } from '../src/config/firebase.js';
+        import { collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
+        }[caractere]));
+        const agora = new Date();
+        const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+        let perfilAtual = null;
+        let demandas = [];
+        document.getElementById('mesReferencia').value = mesAtual;
+
+        function mostrarErro(mensagem) {
+            const caixa = document.getElementById('telaErro');
+            caixa.hidden = false;
+            caixa.textContent = mensagem;
+        }
+
+        function fecharSidebar() {
+            document.getElementById('sidebar').classList.remove('aberta');
+            document.getElementById('sidebarBackdrop').classList.remove('visivel');
+            document.body.classList.remove('menu-mobile-aberto');
+        }
+
+        document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+            const aberta = document.getElementById('sidebar').classList.toggle('aberta');
+            document.getElementById('sidebarBackdrop').classList.toggle('visivel', aberta);
+            document.body.classList.toggle('menu-mobile-aberto', aberta);
+        });
+        document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebar);
+
+        onAuthStateChanged(auth, async user => {
+            if (!user) {
+                window.location.replace('../index.html');
+                return;
+            }
+            try {
+                const perfilDoc = await getDoc(doc(db, 'usuarios', user.uid));
+                if (!perfilDoc.exists() || !String(perfilDoc.data().cargo || '').trim()) {
+                    mostrarErro('Perfil sem cargo válido.');
+                    return;
+                }
+                const perfil = perfilDoc.data();
+                perfilAtual = { uid:user.uid, nome:perfil.nome || user.displayName || 'Usuário', cargo:perfil.cargo };
+                document.getElementById('nomeUsuario').textContent = `${perfilAtual.nome} — ${perfilAtual.cargo}`;
+                document.getElementById('btnDemandas').onclick = () => {
+                    window.location.href = String(perfilAtual.cargo).toLocaleLowerCase('pt-BR') === 'supervisor' ? 'supervisor.html' : 'tecnico.html';
+                };
+                carregarDemandas();
+            } catch (error) {
+                console.error('Falha ao validar perfil:', error);
+                mostrarErro(`Falha ao validar perfil: ${error.code || 'erro-desconhecido'}`);
+            }
+        });
+
+        function converterData(valor) {
+            if (!valor) return null;
+            if (typeof valor.toDate === 'function') return valor.toDate();
+            const texto = String(valor).replace('Solicitado em:', '').trim();
+            const data = new Date(texto);
+            return Number.isNaN(data.getTime()) ? null : data;
+        }
+
+        function chaveMes(data) {
+            if (!data) return '';
+            return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function formatarData(valor) {
+            const data = converterData(valor);
+            return data ? data.toLocaleDateString('pt-BR') : 'Não informada';
+        }
+
+        function demandasDoPeriodo() {
+            const mes = document.getElementById('mesReferencia').value;
+            const categoria = document.getElementById('categoriaRelatorio').value;
+            return demandas.filter(item => {
+                const abertura = converterData(item.criado_em || item.prazo_limite);
+                const ehTi = String(item.tipo_manutencao || '').trim().toLocaleUpperCase('pt-BR') === 'TI';
+                return chaveMes(abertura) === mes && (categoria === 'ti' ? ehTi : !ehTi);
+            });
+        }
+
+        function atualizarUnidades(itens, redefinir) {
+            const select = document.getElementById('unidadeRelatorio');
+            const anterior = redefinir ? 'todas' : select.value;
+            const unidades = [...new Set(itens.map(item => String(item.unidade_atendida || 'Unidade não informada').trim()))]
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            select.innerHTML = '<option value="todas">Todas as unidades</option>' + unidades.map(unidade =>
+                `<option value="${escapeHtml(unidade)}">${escapeHtml(unidade)}</option>`
+            ).join('');
+            select.value = unidades.includes(anterior) ? anterior : 'todas';
+        }
+
+        function nomeMes(mes) {
+            const [ano, numeroMes] = mes.split('-').map(Number);
+            if (!ano || !numeroMes) return mes;
+            const texto = new Date(ano, numeroMes - 1, 1).toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+            return texto.charAt(0).toLocaleUpperCase('pt-BR') + texto.slice(1);
+        }
+
+        function renderizarRelatorio(redefinirUnidade = false) {
+            const itensPeriodo = demandasDoPeriodo();
+            atualizarUnidades(itensPeriodo, redefinirUnidade);
+            const unidadeSelecionada = document.getElementById('unidadeRelatorio').value;
+            const itens = itensPeriodo.filter(item => unidadeSelecionada === 'todas' || String(item.unidade_atendida || 'Unidade não informada').trim() === unidadeSelecionada);
+            const grupos = new Map();
+            itens.forEach(item => {
+                const unidade = String(item.unidade_atendida || 'Unidade não informada').trim();
+                if (!grupos.has(unidade)) grupos.set(unidade, []);
+                grupos.get(unidade).push(item);
+            });
+            grupos.forEach(lista => lista.sort((a, b) =>
+                converterData(a.criado_em || a.prazo_limite) - converterData(b.criado_em || b.prazo_limite)
+            ));
+
+            const categoria = document.getElementById('categoriaRelatorio').value === 'ti' ? 'TI' : 'Manutenção geral';
+            const mes = document.getElementById('mesReferencia').value;
+            const concluidas = itens.filter(item => item.status === 'Concluído').length;
+            const cabecalho = `<div class="cabecalho-relatorio">
+                <h2>Relatório de ${escapeHtml(categoria)} — ${escapeHtml(nomeMes(mes))}</h2>
+                <div class="resumo-relatorio">
+                    <span><b>Unidade:</b> ${escapeHtml(unidadeSelecionada === 'todas' ? 'Todas as unidades' : unidadeSelecionada)}</span>
+                    <span><b>Total solicitado:</b> ${itens.length}</span>
+                    <span><b>Concluídas:</b> ${concluidas}</span>
+                    <span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span>
+                </div>
+            </div>`;
+            if (!itens.length) {
+                document.getElementById('relatorioGerado').innerHTML = cabecalho + '<div class="estado-lista">Nenhuma demanda encontrada para os filtros selecionados.</div>';
+                return;
+            }
+            const secoes = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'pt-BR')).map(([unidade, lista]) => `
+                <section class="unidade-relatorio">
+                    <h3>${escapeHtml(unidade)} — ${lista.length} demanda(s)</h3>
+                    <div class="tabela-container"><table class="tabela-relatorio">
+                        <thead><tr><th>Protocolo</th><th>Demanda solicitada</th><th>Data da solicitação</th><th>Data da conclusão</th><th>Status</th><th>Parecer técnico</th></tr></thead>
+                        <tbody>${lista.map(item => `<tr>
+                            <td>#${escapeHtml(item.protocolo || '—')}</td>
+                            <td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td>
+                            <td>${escapeHtml(formatarData(item.criado_em || item.prazo_limite))}</td>
+                            <td>${escapeHtml(formatarData(item.concluido_em))}</td>
+                            <td>${escapeHtml(item.status || 'Não informado')}</td>
+                            <td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td>
+                        </tr>`).join('')}</tbody>
+                    </table></div>
+                </section>`).join('');
+            document.getElementById('relatorioGerado').innerHTML = cabecalho + secoes;
+        }
+
+        function carregarDemandas() {
+            onSnapshot(query(collection(db, 'demandas'), orderBy('protocolo', 'desc')), snapshot => {
+                demandas = snapshot.docs.map(item => ({ id:item.id, ...item.data() }));
+                renderizarRelatorio(true);
+            }, error => {
+                console.error('Falha ao carregar demandas:', error);
+                mostrarErro(`Falha ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
+            });
+        }
+
+        document.getElementById('formRelatorio').addEventListener('submit', event => {
+            event.preventDefault();
+            renderizarRelatorio(true);
+        });
+        document.getElementById('mesReferencia').addEventListener('change', () => renderizarRelatorio(true));
+        document.getElementById('categoriaRelatorio').addEventListener('change', () => renderizarRelatorio(true));
+        document.getElementById('unidadeRelatorio').addEventListener('change', () => renderizarRelatorio(false));
+        document.getElementById('btnImprimir').addEventListener('click', () => window.print());
+        document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
+        document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
+    </script>
+</body>
+</html>
