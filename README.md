@@ -7,6 +7,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Login com conta Google.
 - Controle de acesso por perfil: `supervisor`, `tecnico` e `ti`.
 - Cadastro de unidades/setores e abertura de chamados.
+- Pesquisa de escola/unidade em lista suspensa ao abrir um chamado.
 - Numeração sequencial de protocolos.
 - Atualização em tempo real das demandas.
 - Alteração do status: **Pendente**, **Em Andamento**, **Concluído** e **Cancelado**.

@@ -97,10 +97,9 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Unidade / Setor Atendido</label>
-                            <select id="unidadeAtendida" required style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
-                                <option value="" disabled selected>Carregando unidades...</option>
-                            </select>
+                            <label>Pesquisar Escola / Unidade</label>
+                            <input id="unidadeAtendida" list="listaEscolas" required autocomplete="off" placeholder="Digite o nome da escola" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
+                            <datalist id="listaEscolas"></datalist>
                         </div>
                         <div class="form-group">
                             <label>Quem foi Atendido</label>
@@ -198,6 +197,7 @@
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
         let supervisorFiltroStatus = 'todos';
+        const escolasDisponiveis = new Set();
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
@@ -285,24 +285,23 @@
             const q = query(collection(db, "unidades"));
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('corpoTabelaUnidades');
-                const select = document.getElementById('unidadeAtendida');
-                
+                const lista = document.getElementById('listaEscolas');
+                const unidades = snapshot.docs.map(item => item.data()).filter(item => item.nome)
+                    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
                 let htmlTabela = '';
-                let htmlSelect = '<option value="" disabled selected>Selecione a unidade...</option>';
-
-                snapshot.forEach(doc => {
-                    const d = doc.data();
+                escolasDisponiveis.clear();
+                unidades.forEach(d => {
+                    escolasDisponiveis.add(d.nome);
                     htmlTabela += `
                         <tr>
                             <td><b>${escapeHtml(d.nome)}</b></td>
                             <td>${escapeHtml(d.endereco || '-')}</td>
                         </tr>
                     `;
-                    htmlSelect += `<option value="${escapeHtml(d.nome)}">${escapeHtml(d.nome)}</option>`;
                 });
 
                 if (container) container.innerHTML = htmlTabela || '<tr><td colspan="2" style="text-align:center;">Nenhuma unidade cadastrada.</td></tr>';
-                if (select) select.innerHTML = htmlSelect;
+                lista.innerHTML = unidades.map(item => `<option value="${escapeHtml(item.nome)}"></option>`).join('');
             });
         }
 
@@ -329,11 +328,13 @@
         // 🟢 ABRIR NOVO CHAMADO (Demanda)
         document.getElementById('formDemanda').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const escolaSelecionada = document.getElementById('unidadeAtendida').value.trim();
+            if (!escolasDisponiveis.has(escolaSelecionada)) return alert('Selecione uma escola cadastrada na lista.');
             try {
                 // Gera um protocolo numérico aleatório de 6 dígitos
                 const payload = {
                     tipo_manutencao: document.getElementById('tipoManutencao').value,
-                    unidade_atendida: document.getElementById('unidadeAtendida').value,
+                    unidade_atendida: escolaSelecionada,
                     quem_atendido: document.getElementById('quemAtendido').value,
                     prioridade: document.getElementById('prioridade').value,
                     descricao: document.getElementById('descricao').value,

@@ -26,6 +26,8 @@ O cargo `tecnico` usa o painel colaborativo com sidebar para abrir, visualizar e
 
 Ao abrir um chamado, a unidade deve ser escolhida na lista mantida pelo supervisor. Técnico e TI podem consultar unidades, mas somente o supervisor pode cadastrá-las.
 
+O campo **Pesquisar escola / unidade** permite digitar parte do nome e selecionar uma opção da lista suspensa. O sistema bloqueia a abertura se o texto não corresponder a uma escola cadastrada.
+
 O parecer é obrigatório para concluir ou cancelar uma demanda.
 
 ## TI

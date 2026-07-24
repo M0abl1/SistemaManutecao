@@ -48,8 +48,9 @@
                         <select id="prioridade" required><option>Baixa</option><option selected>Média</option><option>Alta</option></select>
                     </label>
                 </div>
-                <label>Instituição / unidade
-                    <select id="unidadeAtendida" required><option value="" disabled selected>Carregando unidades...</option></select>
+                <label>Pesquisar escola / unidade
+                    <input id="unidadeAtendida" list="listaEscolas" required autocomplete="off" placeholder="Digite o nome da escola">
+                    <datalist id="listaEscolas"></datalist>
                 </label>
                 <label>Quem será atendido<input id="quemAtendido" maxlength="200"></label>
                 <label>Descrição<textarea id="descricao" rows="3" maxlength="3000"></textarea></label>
@@ -88,6 +89,7 @@
 
         let perfilUsuarioAtual = null;
         let demandas = [];
+        const escolasDisponiveis = new Set();
         let filtroStatus = 'todos';
         let filtroCategoria = 'todas';
 
@@ -145,16 +147,17 @@
         });
 
         function inicializarUnidades() {
-            const select = document.getElementById('unidadeAtendida');
+            const lista = document.getElementById('listaEscolas');
             onSnapshot(query(collection(db, 'unidades')), snapshot => {
                 const nomes = [];
                 snapshot.forEach(item => { if (item.data().nome) nomes.push(item.data().nome); });
                 nomes.sort((a, b) => a.localeCompare(b, 'pt-BR'));
-                select.innerHTML = '<option value="" disabled selected>Selecione a instituição...</option>' +
-                    nomes.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
+                escolasDisponiveis.clear();
+                nomes.forEach(nome => escolasDisponiveis.add(nome));
+                lista.innerHTML = nomes.map(nome => `<option value="${escapeHtml(nome)}"></option>`).join('');
             }, error => {
                 console.error('Erro ao carregar unidades:', error);
-                select.innerHTML = '<option value="" disabled>Falha ao carregar instituições</option>';
+                mostrarErro('Falha ao carregar a lista de escolas.');
             });
         }
 
@@ -282,9 +285,11 @@
         document.getElementById('formDemanda').addEventListener('submit', async event => {
             event.preventDefault();
             if (!perfilUsuarioAtual) return;
+            const escolaSelecionada = document.getElementById('unidadeAtendida').value.trim();
+            if (!escolasDisponiveis.has(escolaSelecionada)) return alert('Selecione uma escola cadastrada na lista.');
             const payload = {
                 tipo_manutencao: document.getElementById('tipoManutencao').value,
-                unidade_atendida: document.getElementById('unidadeAtendida').value,
+                unidade_atendida: escolaSelecionada,
                 quem_atendido: document.getElementById('quemAtendido').value.trim(),
                 prioridade: document.getElementById('prioridade').value,
                 descricao: document.getElementById('descricao').value.trim(),
