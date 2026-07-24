@@ -15,7 +15,8 @@
             <button class="menu-item" data-filtro-status="todos" data-filtro-categoria="geral">🛠️ Manutenção geral</button>
             <button class="menu-item" data-filtro-status="Pendente" data-filtro-categoria="todas">⏳ Pendentes</button>
             <button class="menu-item" data-filtro-status="Em Andamento" data-filtro-categoria="todas">⚡ Em andamento</button>
-            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="todas">✅ Concluídas</button>
+            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="ti">✅ Concluídas TI</button>
+            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="geral">✅ Concluídas manutenção</button>
             <button class="menu-item" data-filtro-status="Cancelado" data-filtro-categoria="todas">❌ Canceladas</button>
             <button class="menu-item sair" id="btnSair">🚪 Sair</button>
         </nav>
@@ -47,7 +48,7 @@
                         </select>
                     </label>
                     <label>Prioridade
-                        <select id="prioridade" required><option>Baixa</option><option selected>Média</option><option>Alta</option></select>
+                        <select id="prioridade" required><option selected>Normal</option><option>Alta</option><option>Crítico</option></select>
                     </label>
                 </div>
                 <label>Pesquisar escola / unidade
@@ -81,11 +82,12 @@
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
             'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
-        const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
+        const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
         const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
         const optionsHtml = (opcoes, selecionada) => opcoes.map(opcao =>
             `<option value="${escapeHtml(opcao)}" ${opcao === selecionada ? 'selected' : ''}>${escapeHtml(opcao)}</option>`
         ).join('');
@@ -195,7 +197,7 @@
             const container = document.getElementById('listaOrdens');
             const filtradas = demandas.filter(demandaAtendeFiltros);
             if (document.getElementById('filtroBusca').value === 'prioridade') {
-                const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+                const ordemPrioridade = { 'Crítico': 0, 'Alta': 1, 'Normal': 2, 'Média': 2, 'Baixa': 2 };
                 filtradas.sort((a, b) => (ordemPrioridade[a.prioridade] ?? 3) - (ordemPrioridade[b.prioridade] ?? 3)
                     || Number(b.protocolo || 0) - Number(a.protocolo || 0));
             } else {
@@ -219,7 +221,7 @@
                 return `<article class="card-demanda" data-id="${escapeHtml(d.idDoc)}">
                     <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
                     <div class="grid-edicao">
-                        <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, d.prioridade)}</select></label>
+                        <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, prioridadeAtual(d.prioridade))}</select></label>
                         <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, d.tipo_manutencao || 'Geral')}</select></label>
                         <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${escapeHtml(d.unidade_atendida)}"></label>
                     </div>
@@ -329,7 +331,7 @@
             input.value = '';
             input.type = campo === 'data' ? 'date' : 'search';
             input.disabled = campo === 'prioridade';
-            input.placeholder = campo === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : campo === 'data' ? '' : 'Número do protocolo';
+            input.placeholder = campo === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal' : campo === 'data' ? '' : 'Número do protocolo';
             renderizarDemandas();
         }
         document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);

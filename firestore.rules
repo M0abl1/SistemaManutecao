@@ -132,7 +132,7 @@ service cloud.firestore {
         ] &&
         validText(data.unidade_atendida, 1, 200) &&
         validText(data.quem_atendido, 0, 200) &&
-        data.prioridade in ['Baixa', 'Média', 'Alta'] &&
+        data.prioridade in ['Normal', 'Alta', 'Crítico'] &&
         validText(data.descricao, 0, 3000) &&
         data.status in ['Pendente', 'Em Andamento', 'Concluído', 'Cancelado'] &&
         validText(data.observacao_tecnico, 0, 5000) &&

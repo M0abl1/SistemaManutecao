@@ -19,7 +19,7 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | `tipo_manutencao` | string | Sim | Categoria da OS: elétrica, hidráulica, patrimônio, limpeza, marcenaria, alvenaria, cobertura, serralheria, montagem de mobiliário/equipamentos, geral, outros ou TI |
 | `unidade_atendida` | string | Sim | Unidade ou setor solicitante |
 | `quem_atendido` | string | Não | Pessoa ou local atendido |
-| `prioridade` | string | Sim | `Baixa`, `Média` ou `Alta` |
+| `prioridade` | string | Sim | `Normal`, `Alta` ou `Crítico` |
 | `descricao` | string | Não | Relato original da solicitação |
 | `status` | string | Sim | `Pendente`, `Em Andamento`, `Concluído` ou `Cancelado` |
 | `prazo_limite` | string ISO 8601 | Sim na tela atual | Data usada como abertura na interface atual |
@@ -52,3 +52,5 @@ Na ausência do documento, a tela do supervisor inicia a sequência em `1000`.
 ## Compatibilidade de dados
 
 A interface aceita registros antigos sem alguns campos opcionais e exibe valores padrão. Para preservar filtros e permissões, novos documentos devem sempre conter `tipo_manutencao`, `status` e `protocolo` com os tipos descritos acima.
+
+Registros antigos com prioridade `Baixa` ou `Média` são apresentados como `Normal` na edição e migrados para o novo valor ao serem salvos.

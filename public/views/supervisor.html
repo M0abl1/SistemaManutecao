@@ -43,7 +43,8 @@
             <div class="menu-item" data-alvo="geral" data-categoria="geral" data-status="todos"><span>🛠️</span> Manutenção Geral</div>
             <div class="menu-item" data-alvo="pendentes" data-categoria="todas" data-status="Pendente"><span>⏳</span> Pendentes</div>
             <div class="menu-item" data-alvo="andamento" data-categoria="todas" data-status="Em Andamento"><span>⚡</span> Em Andamento</div>
-            <div class="menu-item" data-alvo="concluidas" data-categoria="todas" data-status="Concluído"><span>✅</span> Concluídas</div>
+            <div class="menu-item" data-alvo="concluidas" data-categoria="ti" data-status="Concluído"><span>✅</span> Concluídas TI</div>
+            <div class="menu-item" data-alvo="concluidas" data-categoria="geral" data-status="Concluído"><span>✅</span> Concluídas manutenção</div>
             <div class="menu-item" data-alvo="canceladas" data-categoria="todas" data-status="Cancelado"><span>❌</span> Canceladas</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
@@ -115,9 +116,9 @@
                         <div class="form-group">
                             <label>Prioridade</label>
                             <select id="prioridade" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
-                                <option value="Baixa">Baixa</option>
-                                <option value="Média" selected>Média</option>
+                                <option value="Normal" selected>Normal</option>
                                 <option value="Alta">Alta</option>
+                                <option value="Crítico">Crítico</option>
                             </select>
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
@@ -199,7 +200,8 @@
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
             'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
-        const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
+        const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
+        const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
         let supervisorFiltroStatus = 'todos';
@@ -402,7 +404,8 @@ if (d.prazo_limite) {
 }
 
             const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === d.tipo_manutencao ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
-            const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === d.prioridade ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
+            const prioridadeSelecionada = prioridadeAtual(d.prioridade);
+            const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === prioridadeSelecionada ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
             const dataSolicitacao = (() => {
                 const valor = d.criado_em || d.prazo_limite || '';
                 const data = new Date(String(valor).replace('Solicitado em:', '').trim());
@@ -532,7 +535,7 @@ if (d.prazo_limite) {
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
             });
 
-            const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+            const ordemPrioridade = { 'Crítico': 0, 'Alta': 1, 'Normal': 2, 'Média': 2, 'Baixa': 2 };
             const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
                 : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
             ['listaGeral', 'listaPendentes', 'listaAndamento', 'listaConcluidas', 'listaCanceladas'].forEach(id => {
@@ -553,7 +556,7 @@ if (d.prazo_limite) {
             input.value = '';
             input.type = event.target.value === 'data' ? 'date' : 'search';
             input.disabled = event.target.value === 'prioridade';
-            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
+            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
             aplicarFiltroBusca();
         });
         // Logout
