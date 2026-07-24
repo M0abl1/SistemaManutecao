@@ -404,7 +404,7 @@ if (d.prazo_limite) {
             alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
 
             return `
-                <div class="card-demanda" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-data="${dataSolicitacao}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
+                <div class="card-demanda" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
                         <span class="badge" style="background: ${corStatus}">${d.status}</span>
@@ -508,14 +508,25 @@ if (d.prazo_limite) {
             const termoBusca = document.getElementById('inputBusca').value.toLowerCase().trim();
             const filtro = document.getElementById('filtroBusca').value;
             const cards = document.querySelectorAll('.card-demanda');
+            const modoPrioridade = filtro === 'prioridade';
 
             cards.forEach(card => {
                 const categoriaValida = supervisorFiltroCategoria === 'todas' || card.dataset.categoria === supervisorFiltroCategoria;
                 const campo = filtro === 'protocolo' ? card.dataset.protocolo
-                    : filtro === 'prioridade' ? card.dataset.prioridade
                     : filtro === 'data' ? card.dataset.data
                     : card.innerText;
-                card.style.display = categoriaValida && campo.toLowerCase().includes(termoBusca) ? 'flex' : 'none';
+                const buscaValida = modoPrioridade ? card.dataset.status === 'Pendente' : campo.toLowerCase().includes(termoBusca);
+                card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
+            });
+
+            const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+            ['listaGeral', 'listaPendentes', 'listaAndamento', 'listaConcluidas', 'listaCanceladas'].forEach(id => {
+                const container = document.getElementById(id);
+                const cardsContainer = Array.from(container.children).filter(item => item.classList.contains('card-demanda'));
+                cardsContainer.sort((a, b) => modoPrioridade
+                    ? (ordemPrioridade[a.dataset.prioridade] ?? 3) - (ordemPrioridade[b.dataset.prioridade] ?? 3) || Number(b.dataset.protocolo) - Number(a.dataset.protocolo)
+                    : Number(b.dataset.protocolo) - Number(a.dataset.protocolo));
+                cardsContainer.forEach(card => container.appendChild(card));
             });
         }
         document.getElementById('inputBusca').addEventListener('input', aplicarFiltroBusca);
@@ -523,7 +534,14 @@ if (d.prazo_limite) {
             const input = document.getElementById('inputBusca');
             input.value = '';
             input.type = event.target.value === 'data' ? 'date' : 'search';
-            input.placeholder = event.target.value === 'prioridade' ? 'Baixa, Média ou Alta' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
+            input.disabled = event.target.value === 'prioridade';
+            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
+            if (event.target.value === 'prioridade') {
+                document.querySelectorAll('.secao-painel').forEach(secao => secao.classList.remove('ativa'));
+                document.getElementById('painel-geral').classList.add('ativa');
+                document.getElementById('tituloPagina').innerText = 'Pendentes por Prioridade';
+                supervisorFiltroCategoria = 'todas';
+            }
             aplicarFiltroBusca();
         });
         // Logout

@@ -13,7 +13,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Parecer técnico obrigatório ao concluir ou cancelar uma demanda.
 - Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.
 - Edição de prioridade, tipo de OS, instituição e parecer técnico diretamente na demanda.
-- Busca por prioridade, número de protocolo e data de solicitação.
+- Listagem de pendentes por prioridade na ordem Alta, Média e Baixa, além de busca por protocolo e data de solicitação.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
 
 ## Perfis de acesso

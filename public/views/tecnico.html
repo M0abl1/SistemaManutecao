@@ -172,14 +172,15 @@
         }
 
         function demandaAtendeFiltros(demanda) {
-            if (filtroStatus !== 'todos' && demanda.status !== filtroStatus) return false;
+            const campo = document.getElementById('filtroBusca').value;
+            if (campo === 'prioridade' && demanda.status !== 'Pendente') return false;
+            if (campo !== 'prioridade' && filtroStatus !== 'todos' && demanda.status !== filtroStatus) return false;
             const ehTi = normalizar(demanda.tipo_manutencao) === 'ti';
             if (filtroCategoria === 'ti' && !ehTi) return false;
             if (filtroCategoria === 'geral' && ehTi) return false;
+            if (campo === 'prioridade') return true;
             const termo = normalizar(document.getElementById('inputBusca').value);
             if (!termo) return true;
-            const campo = document.getElementById('filtroBusca').value;
-            if (campo === 'prioridade') return normalizar(demanda.prioridade).includes(termo);
             if (campo === 'data') return dataSolicitacao(demanda).includes(termo);
             return String(demanda.protocolo || '').includes(termo.replace('#', ''));
         }
@@ -187,6 +188,11 @@
         function renderizarDemandas() {
             const container = document.getElementById('listaOrdens');
             const filtradas = demandas.filter(demandaAtendeFiltros);
+            if (document.getElementById('filtroBusca').value === 'prioridade') {
+                const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+                filtradas.sort((a, b) => (ordemPrioridade[a.prioridade] ?? 3) - (ordemPrioridade[b.prioridade] ?? 3)
+                    || Number(b.protocolo || 0) - Number(a.protocolo || 0));
+            }
             if (!filtradas.length) {
                 container.innerHTML = '<div class="estado-lista">Nenhuma demanda encontrada.</div>';
                 return;
@@ -307,7 +313,8 @@
             const input = document.getElementById('inputBusca');
             input.value = '';
             input.type = campo === 'data' ? 'date' : 'search';
-            input.placeholder = campo === 'prioridade' ? 'Baixa, Média ou Alta' : campo === 'data' ? '' : 'Número do protocolo';
+            input.disabled = campo === 'prioridade';
+            input.placeholder = campo === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : campo === 'data' ? '' : 'Número do protocolo';
             renderizarDemandas();
         }
         document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);
