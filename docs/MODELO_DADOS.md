@@ -56,3 +56,17 @@ Na ausência do documento, a tela do supervisor inicia a sequência em `1000`.
 A interface aceita registros antigos sem alguns campos opcionais e exibe valores padrão. Para preservar filtros e permissões, novos documentos devem sempre conter `tipo_manutencao`, `status` e `protocolo` com os tipos descritos acima.
 
 Registros antigos com prioridade `Baixa` ou `Média` são apresentados como `Normal` na edição e migrados para o novo valor ao serem salvos.
+
+## Coleção `emprestimos`
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---:|---|
+| `produto` | string | Sim | Produto emprestado, até 200 caracteres |
+| `emprestado_para` | string | Sim | Pessoa ou setor destinatário, até 200 caracteres |
+| `numero_tombo` | string | Sim | Número patrimonial, até 80 caracteres |
+| `data_emprestimo` | string `YYYY-MM-DD` | Sim | Data do empréstimo |
+| `data_devolucao` | string `YYYY-MM-DD` | Sim | Data prevista de devolução, igual ou posterior ao empréstimo |
+| `criado_por` | map | Sim | UID, nome e cargo do usuário autenticado |
+| `criado_em` | timestamp | Sim | Data de criação definida pelo servidor |
+
+Perfis operacionais podem criar e consultar empréstimos. Alteração e exclusão ficam bloqueadas pelas regras do Firestore.

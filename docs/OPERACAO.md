@@ -34,6 +34,10 @@ O parecer é obrigatório para concluir ou cancelar uma demanda.
 
 Todos os usuários operacionais podem excluir uma demanda pelo botão **Excluir demanda**. Antes da exclusão, o sistema exibe o número do protocolo e exige confirmação. A exclusão é permanente e não altera nem reutiliza o contador de protocolos.
 
+## Empréstimos
+
+A sidebar dos painéis possui o botão **Empréstimos**. Todos os perfis operacionais podem acessar a página, registrar e consultar empréstimos. Para registrar, informe produto, pessoa ou setor destinatário, número de tombo, data do empréstimo e data de devolução. A devolução deve ser igual ou posterior à data do empréstimo.
+
 ## TI
 
 O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões operacionais sobre os chamados. A distinção de cargo permanece apenas para identificação e auditoria de quem realizou cada alteração.

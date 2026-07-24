@@ -17,6 +17,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.
 - Edição de prioridade, tipo de OS, instituição e parecer técnico diretamente na demanda; o supervisor também pode corrigir o relato original.
 - Exclusão de demandas por usuários operacionais, protegida por confirmação explícita e aviso de ação permanente.
+- Página colaborativa de empréstimos com produto, destinatário, tombo e datas de empréstimo e devolução.
 - Prioridades Normal, Alta e Crítico, com listagem de pendentes na ordem Crítico, Alta e Normal.
 - Separação das demandas concluídas entre TI e manutenção geral.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.

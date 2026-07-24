@@ -18,6 +18,7 @@
             <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="ti">✅ Concluídas TI</button>
             <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="geral">✅ Concluídas manutenção</button>
             <button class="menu-item" data-filtro-status="Cancelado" data-filtro-categoria="todas">❌ Canceladas</button>
+            <button class="menu-item" id="btnEmprestimos">📦 Empréstimos</button>
             <button class="menu-item sair" id="btnSair">🚪 Sair</button>
         </nav>
     </aside>
@@ -354,6 +355,7 @@
         document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);
         document.getElementById('inputBusca').addEventListener('input', renderizarDemandas);
         document.getElementById('limparBusca').addEventListener('click', () => { document.getElementById('inputBusca').value = ''; renderizarDemandas(); });
+        document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
         document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     </script>
 </body>

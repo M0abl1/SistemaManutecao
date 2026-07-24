@@ -46,6 +46,7 @@
             <div class="menu-item" data-alvo="concluidas" data-categoria="ti" data-status="Concluído"><span>✅</span> Concluídas TI</div>
             <div class="menu-item" data-alvo="concluidas" data-categoria="geral" data-status="Concluído"><span>✅</span> Concluídas manutenção</div>
             <div class="menu-item" data-alvo="canceladas" data-categoria="todas" data-status="Cancelado"><span>❌</span> Canceladas</div>
+            <div class="menu-item" id="btnEmprestimos"><span>📦</span> Empréstimos</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
             <div class="menu-item" id="btnSair" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #ef4444;">
@@ -248,6 +249,7 @@
             document.body.classList.toggle('menu-mobile-aberto', aberto);
         });
         document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebarMobile);
+        document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') fecharSidebarMobile();
         });

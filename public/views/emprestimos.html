@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Empréstimos</title>
+    <link rel="stylesheet" href="../css/tecnico.css">
+    <style>
+        .lista-emprestimos{display:grid;gap:14px}
+        .card-emprestimo{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:18px}
+        .dados-emprestimo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin-top:12px}
+        .dados-emprestimo div{color:var(--texto-secundario)}
+        .dados-emprestimo b{display:block;color:var(--texto-principal);margin-bottom:3px}
+        .menu-item.voltar{margin-top:auto;border-top:1px solid rgba(255,255,255,.08)}
+        @media(max-width:520px){.dados-emprestimo{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>Empréstimos</h3></div>
+        <nav>
+            <button class="menu-item ativo">📦 Empréstimos</button>
+            <button class="menu-item voltar" id="btnDemandas">📋 Voltar às demandas</button>
+            <button class="menu-item sair" id="btnSair">🚪 Sair</button>
+        </nav>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
+    <main class="conteudo-principal">
+        <header>
+            <button class="btn-toggle" id="btnToggleSidebar" aria-label="Abrir menu">☰</button>
+            <div>
+                <h1>Controle de empréstimos</h1>
+                <p id="nomeUsuario">Lendo sessão...</p>
+            </div>
+        </header>
+
+        <div id="telaErro" class="alerta-erro" hidden></div>
+
+        <section class="card-formulario">
+            <h2>Novo empréstimo</h2>
+            <form id="formEmprestimo">
+                <div class="grid-formulario">
+                    <label>Produto emprestado
+                        <input id="produto" required maxlength="200" autocomplete="off" placeholder="Nome do produto">
+                    </label>
+                    <label>Emprestado para
+                        <input id="emprestadoPara" required maxlength="200" autocomplete="off" placeholder="Nome da pessoa ou setor">
+                    </label>
+                    <label>Número de tombo
+                        <input id="numeroTombo" required maxlength="80" autocomplete="off" placeholder="Número patrimonial">
+                    </label>
+                    <label>Data do empréstimo
+                        <input id="dataEmprestimo" type="date" required>
+                    </label>
+                    <label>Data de devolução
+                        <input id="dataDevolucao" type="date" required>
+                    </label>
+                </div>
+                <button type="submit" class="btn-criar">Registrar empréstimo</button>
+            </form>
+        </section>
+
+        <section class="barra-busca">
+            <select id="filtroBusca" aria-label="Campo de busca">
+                <option value="todos">Todos os campos</option>
+                <option value="produto">Produto</option>
+                <option value="pessoa">Pessoa ou setor</option>
+                <option value="tombo">Número de tombo</option>
+            </select>
+            <input id="inputBusca" type="search" placeholder="Pesquisar empréstimos">
+            <button id="limparBusca" type="button">Limpar</button>
+        </section>
+
+        <section id="listaEmprestimos" class="lista-emprestimos">
+            <div class="estado-lista">Buscando empréstimos...</div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { db, auth } from '../src/config/firebase.js';
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
+        }[caractere]));
+        const normalizar = valor => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const agora = new Date();
+        const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+        let perfilAtual = null;
+        let emprestimos = [];
+
+        document.getElementById('dataEmprestimo').value = hoje;
+        document.getElementById('dataDevolucao').min = hoje;
+
+        function mostrarErro(mensagem) {
+            const caixa = document.getElementById('telaErro');
+            caixa.hidden = false;
+            caixa.textContent = mensagem;
+        }
+
+        function fecharSidebar() {
+            document.getElementById('sidebar').classList.remove('aberta');
+            document.getElementById('sidebarBackdrop').classList.remove('visivel');
+            document.body.classList.remove('menu-mobile-aberto');
+        }
+
+        document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+            const aberta = document.getElementById('sidebar').classList.toggle('aberta');
+            document.getElementById('sidebarBackdrop').classList.toggle('visivel', aberta);
+            document.body.classList.toggle('menu-mobile-aberto', aberta);
+        });
+        document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebar);
+
+        onAuthStateChanged(auth, async user => {
+            if (!user) {
+                window.location.replace('../index.html');
+                return;
+            }
+            try {
+                const perfilDoc = await getDoc(doc(db, 'usuarios', user.uid));
+                if (!perfilDoc.exists() || !String(perfilDoc.data().cargo || '').trim()) {
+                    mostrarErro('Perfil sem cargo válido.');
+                    return;
+                }
+                const perfil = perfilDoc.data();
+                perfilAtual = { uid:user.uid, nome:perfil.nome || user.displayName || 'Usuário', cargo:perfil.cargo };
+                document.getElementById('nomeUsuario').textContent = `${perfilAtual.nome} — ${perfilAtual.cargo}`;
+                document.getElementById('btnDemandas').onclick = () => {
+                    window.location.href = String(perfilAtual.cargo).toLocaleLowerCase('pt-BR') === 'supervisor' ? 'supervisor.html' : 'tecnico.html';
+                };
+                carregarEmprestimos();
+            } catch (error) {
+                console.error('Falha ao validar perfil:', error);
+                mostrarErro(`Falha ao validar perfil: ${error.code || 'erro-desconhecido'}`);
+            }
+        });
+
+        function formatarData(dataIso) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dataIso || '')) return 'Não informada';
+            return new Date(`${dataIso}T12:00:00`).toLocaleDateString('pt-BR');
+        }
+
+        function renderizarEmprestimos() {
+            const filtro = document.getElementById('filtroBusca').value;
+            const termo = normalizar(document.getElementById('inputBusca').value);
+            const filtrados = emprestimos.filter(item => {
+                if (!termo) return true;
+                const campo = filtro === 'produto' ? item.produto
+                    : filtro === 'pessoa' ? item.emprestado_para
+                    : filtro === 'tombo' ? item.numero_tombo
+                    : `${item.produto} ${item.emprestado_para} ${item.numero_tombo}`;
+                return normalizar(campo).includes(termo);
+            });
+            const lista = document.getElementById('listaEmprestimos');
+            if (!filtrados.length) {
+                lista.innerHTML = '<div class="estado-lista">Nenhum empréstimo encontrado.</div>';
+                return;
+            }
+            lista.innerHTML = filtrados.map(item => `<article class="card-emprestimo">
+                <div class="header-demanda">
+                    <span class="protocolo">${escapeHtml(item.produto)}</span>
+                    <span class="badge" style="background:var(--primaria)">Tombo ${escapeHtml(item.numero_tombo)}</span>
+                </div>
+                <div class="dados-emprestimo">
+                    <div><b>Emprestado para</b>${escapeHtml(item.emprestado_para)}</div>
+                    <div><b>Data do empréstimo</b>${escapeHtml(formatarData(item.data_emprestimo))}</div>
+                    <div><b>Data de devolução</b>${escapeHtml(formatarData(item.data_devolucao))}</div>
+                    <div><b>Registrado por</b>${escapeHtml(item.criado_por?.nome || 'Não informado')}</div>
+                </div>
+            </article>`).join('');
+        }
+
+        function carregarEmprestimos() {
+            onSnapshot(query(collection(db, 'emprestimos'), orderBy('data_emprestimo', 'desc')), snapshot => {
+                emprestimos = snapshot.docs.map(item => ({ id:item.id, ...item.data() }));
+                renderizarEmprestimos();
+            }, error => {
+                console.error('Falha ao carregar empréstimos:', error);
+                mostrarErro(`Falha ao carregar empréstimos: ${error.code || 'erro-desconhecido'}`);
+            });
+        }
+
+        document.getElementById('dataEmprestimo').addEventListener('change', event => {
+            document.getElementById('dataDevolucao').min = event.target.value || hoje;
+        });
+
+        document.getElementById('formEmprestimo').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!perfilAtual) return;
+            const dataEmprestimo = document.getElementById('dataEmprestimo').value;
+            const dataDevolucao = document.getElementById('dataDevolucao').value;
+            if (dataDevolucao < dataEmprestimo) return alert('A data de devolução não pode ser anterior ao empréstimo.');
+            const payload = {
+                produto:document.getElementById('produto').value.trim(),
+                emprestado_para:document.getElementById('emprestadoPara').value.trim(),
+                numero_tombo:document.getElementById('numeroTombo').value.trim(),
+                data_emprestimo:dataEmprestimo,
+                data_devolucao:dataDevolucao,
+                criado_por:perfilAtual,
+                criado_em:serverTimestamp()
+            };
+            try {
+                await addDoc(collection(db, 'emprestimos'), payload);
+                alert('Empréstimo registrado.');
+                event.target.reset();
+                document.getElementById('dataEmprestimo').value = hoje;
+                document.getElementById('dataDevolucao').min = hoje;
+            } catch (error) {
+                console.error('Falha ao registrar empréstimo:', error);
+                alert(`Falha ao registrar: ${error.code || 'erro-desconhecido'}`);
+            }
+        });
+
+        document.getElementById('filtroBusca').addEventListener('change', renderizarEmprestimos);
+        document.getElementById('inputBusca').addEventListener('input', renderizarEmprestimos);
+        document.getElementById('limparBusca').addEventListener('click', () => {
+            document.getElementById('inputBusca').value = '';
+            renderizarEmprestimos();
+        });
+        document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
+    </script>
+</body>
+</html>
