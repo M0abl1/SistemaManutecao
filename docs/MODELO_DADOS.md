@@ -25,10 +25,12 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | `prazo_limite` | string ISO 8601 | Sim na tela atual | Data usada como abertura na interface atual |
 | `observacao_tecnico` | string | Sim | Parecer do atendimento; começa vazio |
 | `concluido_em` | string ISO 8601 | Condicional | Gravado ao concluir ou cancelar |
-| `status_alterado_por` | map | Após nova alteração | UID, nome e cargo de quem alterou o status |
-| `status_alterado_em` | timestamp | Após nova alteração | Data e hora confiável gerada pelo servidor |
+| `status_alterado_por` | map | Após nova alteração | UID, nome e cargo de quem editou a demanda ou alterou seu status |
+| `status_alterado_em` | timestamp | Após nova alteração | Data e hora confiável da última edição, gerada pelo servidor |
 
 `tipo_manutencao` identifica a categoria do chamado, mas não limita sua visibilidade: todos os usuários operacionais podem atuar em qualquer categoria.
+
+Os campos editáveis após a criação são `prioridade`, `tipo_manutencao`, `unidade_atendida`, `observacao_tecnico`, `status` e, quando aplicável, `concluido_em`. Protocolo, descrição original, solicitante e data de abertura permanecem protegidos.
 
 ## `unidades/{id}`
 

@@ -38,11 +38,13 @@
             <h3>Menu Gestão</h3>
         </div>
         <nav style="display: flex; flex-direction: column; flex: 1;">
-            <div class="menu-item ativo" data-alvo="geral"><span>📋</span> Painel Principal</div>
-            <div class="menu-item" data-alvo="pendentes"><span>⏳</span> Pendentes</div>
-            <div class="menu-item" data-alvo="andamento"><span>⚡</span> Em Andamento</div>
-            <div class="menu-item" data-alvo="concluidas"><span>✅</span> Concluídas</div>
-            <div class="menu-item" data-alvo="canceladas"><span>❌</span> Canceladas</div>
+            <div class="menu-item ativo" data-alvo="geral" data-categoria="todas"><span>📋</span> Todas as Demandas</div>
+            <div class="menu-item" data-alvo="geral" data-categoria="ti"><span>💻</span> Demandas de TI</div>
+            <div class="menu-item" data-alvo="geral" data-categoria="geral"><span>🛠️</span> Manutenção Geral</div>
+            <div class="menu-item" data-alvo="pendentes" data-categoria="todas"><span>⏳</span> Pendentes</div>
+            <div class="menu-item" data-alvo="andamento" data-categoria="todas"><span>⚡</span> Em Andamento</div>
+            <div class="menu-item" data-alvo="concluidas" data-categoria="todas"><span>✅</span> Concluídas</div>
+            <div class="menu-item" data-alvo="canceladas" data-categoria="todas"><span>❌</span> Canceladas</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
             <div class="menu-item" id="btnSair" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #ef4444;">
@@ -68,7 +70,8 @@
                 <select id="filtroBusca" aria-label="Filtrar busca por" style="border:none; border-right: 1px solid var(--borda); border-radius: 0; background:transparent; width:auto; padding-right:10px; color: var(--texto-principal);">
                     <option value="todos">Todos os campos</option>
                     <option value="protocolo">Nº do protocolo</option>
-                    <option value="tipo">Tipo de demanda</option>
+                    <option value="prioridade">Prioridade</option>
+                    <option value="data">Data de solicitação</option>
                 </select>
                 <input type="search" id="inputBusca" placeholder="Digite para filtrar a listagem..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
             </div>
@@ -190,7 +193,10 @@
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria', 'Geral', 'TI'];
+        const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
         let perfilUsuarioAtual = null;
+        let supervisorFiltroCategoria = 'todas';
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
@@ -212,6 +218,8 @@
                 document.querySelectorAll('.secao-painel').forEach(s => s.classList.remove('ativa'));
                 document.getElementById(`painel-${e.currentTarget.dataset.alvo}`).classList.add('ativa');
                 document.getElementById('tituloPagina').innerText = e.currentTarget.innerText;
+                supervisorFiltroCategoria = e.currentTarget.dataset.categoria || 'todas';
+                aplicarFiltroBusca();
                 fecharSidebarMobile();
             });
         });
@@ -384,18 +392,28 @@ if (d.prazo_limite) {
     }
 }
 
+            const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === d.tipo_manutencao ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
+            const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === d.prioridade ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
+            const dataSolicitacao = (() => {
+                const valor = d.criado_em || d.prazo_limite || '';
+                const data = new Date(String(valor).replace('Solicitado em:', '').trim());
+                return isNaN(data) ? '' : data.toISOString().slice(0, 10);
+            })();
             d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
             prazoTexto = escapeHtml(prazoTexto);
             alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
 
             return `
-                <div class="card-demanda" data-protocolo="${d.protocolo}" data-tipo="${d.tipo_manutencao || 'Geral'}">
+                <div class="card-demanda" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-data="${dataSolicitacao}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
                         <span class="badge" style="background: ${corStatus}">${d.status}</span>
                     </div>
-                    <div><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
-                    <div><b>Instituição:</b> ${d.unidade_atendida || 'Não informada'}</div>
+                    <div class="grid-edicao-demanda">
+                        <label>Prioridade<select data-campo="prioridade">${prioridadeOptions}</select></label>
+                        <label>Tipo de OS<select data-campo="tipo_manutencao">${tipoOptions}</select></label>
+                        <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${d.unidade_atendida || ''}"></label>
+                    </div>
                     <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
                     <div><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
                     <div style="color: var(--texto-secundario, #666);"><b>Data de Abertura:</b> ${prazoTexto}</div>
@@ -410,13 +428,14 @@ if (d.prazo_limite) {
                         </span>
                     </div>
 
-                    <textarea id="obs-supervisor-${d.id}" rows="3" placeholder="Preencha ou edite o relato técnico" style="width:100%; margin-top:12px; padding:10px; border:1px solid var(--borda); border-radius:6px; background:var(--bg-principal); color:var(--texto-principal);">${d.observacao_tecnico || ''}</textarea>
+                    <textarea id="obs-supervisor-${d.id}" data-campo="observacao_tecnico" rows="3" placeholder="Preencha ou edite o parecer técnico" style="width:100%; margin-top:12px; padding:10px; border:1px solid var(--borda); border-radius:6px; background:var(--bg-principal); color:var(--texto-principal);">${d.observacao_tecnico || ''}</textarea>
+                    <button class="btn btn-salvar-edicao" type="button" data-acao="salvar" data-demanda-id="${d.id}">Salvar edição</button>
                     
                     <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
-                        <button class="btn-acao" style="background: #f59e0b;" data-demanda-id="${d.id}" data-novo-status="Pendente">Pendente</button>
-                        <button class="btn-acao" style="background: #3b82f6;" data-demanda-id="${d.id}" data-novo-status="Em Andamento">Andamento</button>
-                        <button class="btn-acao" style="background: #10b981;" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
-                        <button class="btn-acao" style="background: #ef4444;" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
+                        <button class="btn-acao" style="background: #f59e0b;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Pendente">Pendente</button>
+                        <button class="btn-acao" style="background: #3b82f6;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Em Andamento">Andamento</button>
+                        <button class="btn-acao" style="background: #10b981;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
+                        <button class="btn-acao" style="background: #ef4444;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
                     </div>
                 </div>
             `;
@@ -450,34 +469,39 @@ if (d.prazo_limite) {
         }
 
         // 🟢 MUDAR STATUS
-        async function mudarStatusOs(idDoc, novoStatus) {
-            if (!STATUS_PERMITIDOS.has(novoStatus)) return;
-            const confirmar = confirm(`Tem certeza que deseja forçar o status desta OS para "${novoStatus}"?`);
-            if (!confirmar) return;
-
+        async function salvarDemanda(idDoc, novoStatus = null, cardAtual = null) {
+            if (novoStatus && !STATUS_PERMITIDOS.has(novoStatus)) return;
+            if (novoStatus && !confirm(`Alterar o status desta OS para "${novoStatus}"?`)) return;
             const docRef = doc(db, "demandas", idDoc);
             try {
                 if (!perfilUsuarioAtual) return;
-                const observacao = document.getElementById(`obs-supervisor-${idDoc}`)?.value.trim() || '';
+                const card = cardAtual || document.querySelector(`[data-demanda-card="${CSS.escape(idDoc)}"]`);
+                const observacao = card.querySelector('[data-campo="observacao_tecnico"]').value.trim();
+                const unidade = card.querySelector('[data-campo="unidade_atendida"]').value.trim();
+                if (!unidade) return alert('Informe a instituição.');
+                if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && !observacao) return alert('Preencha o parecer técnico.');
                 const payload = {
-                    status: novoStatus,
+                    prioridade: card.querySelector('[data-campo="prioridade"]').value,
+                    tipo_manutencao: card.querySelector('[data-campo="tipo_manutencao"]').value,
+                    unidade_atendida: unidade,
                     observacao_tecnico: observacao,
                     status_alterado_por: perfilUsuarioAtual,
                     status_alterado_em: serverTimestamp()
                 };
+                if (novoStatus) payload.status = novoStatus;
                 if (novoStatus === 'Concluído' || novoStatus === 'Cancelado') {
                     payload.concluido_em = new Date().toISOString();
                 }
                 await updateDoc(docRef, payload);
-                alert(`Status atualizado pelo supervisor para: ${novoStatus}`);
+                alert(novoStatus ? `Status atualizado para: ${novoStatus}` : 'Demanda atualizada.');
             } catch (error) {
                 console.error("Erro ao atualizar status:", error);
                 alert("Falha ao salvar dados.");
             }
         }
         document.addEventListener('click', (event) => {
-            const botao = event.target.closest('[data-demanda-id]');
-            if (botao) mudarStatusOs(botao.dataset.demandaId, botao.dataset.novoStatus);
+            const botao = event.target.closest('[data-acao][data-demanda-id]');
+            if (botao) salvarDemanda(botao.dataset.demandaId, botao.dataset.acao === 'status' ? botao.dataset.novoStatus : null, botao.closest('.card-demanda'));
         });
         // 🟢 BARRA DE PESQUISA EM TEMPO REAL
         function aplicarFiltroBusca() {
@@ -486,14 +510,22 @@ if (d.prazo_limite) {
             const cards = document.querySelectorAll('.card-demanda');
 
             cards.forEach(card => {
+                const categoriaValida = supervisorFiltroCategoria === 'todas' || card.dataset.categoria === supervisorFiltroCategoria;
                 const campo = filtro === 'protocolo' ? card.dataset.protocolo
-                    : filtro === 'tipo' ? card.dataset.tipo
+                    : filtro === 'prioridade' ? card.dataset.prioridade
+                    : filtro === 'data' ? card.dataset.data
                     : card.innerText;
-                card.style.display = campo.toLowerCase().includes(termoBusca) ? 'flex' : 'none';
+                card.style.display = categoriaValida && campo.toLowerCase().includes(termoBusca) ? 'flex' : 'none';
             });
         }
         document.getElementById('inputBusca').addEventListener('input', aplicarFiltroBusca);
-        document.getElementById('filtroBusca').addEventListener('change', aplicarFiltroBusca);
+        document.getElementById('filtroBusca').addEventListener('change', (event) => {
+            const input = document.getElementById('inputBusca');
+            input.value = '';
+            input.type = event.target.value === 'data' ? 'date' : 'search';
+            input.placeholder = event.target.value === 'prioridade' ? 'Baixa, Média ou Alta' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
+            aplicarFiltroBusca();
+        });
         // Logout
         document.getElementById('btnSair').addEventListener('click', () => {
             signOut(auth).then(() => { window.location.href = '../index.html'; });

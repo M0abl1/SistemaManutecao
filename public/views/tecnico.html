@@ -7,291 +7,294 @@
     <link rel="stylesheet" href="../css/tecnico.css">
 </head>
 <body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>Demandas</h3></div>
+        <nav>
+            <button class="menu-item ativo" data-filtro-status="todos" data-filtro-categoria="todas">📋 Todas</button>
+            <button class="menu-item" data-filtro-status="todos" data-filtro-categoria="ti">💻 Demandas de TI</button>
+            <button class="menu-item" data-filtro-status="todos" data-filtro-categoria="geral">🛠️ Manutenção geral</button>
+            <button class="menu-item" data-filtro-status="Pendente" data-filtro-categoria="todas">⏳ Pendentes</button>
+            <button class="menu-item" data-filtro-status="Em Andamento" data-filtro-categoria="todas">⚡ Em andamento</button>
+            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="todas">✅ Concluídas</button>
+            <button class="menu-item" data-filtro-status="Cancelado" data-filtro-categoria="todas">❌ Canceladas</button>
+            <button class="menu-item sair" id="btnSair">🚪 Sair</button>
+        </nav>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
 
-    <div class="container">
-        <!-- CABEÇALHO DO USUÁRIO -->
+    <main class="conteudo-principal">
         <header>
+            <button class="btn-toggle" id="btnToggleSidebar" aria-label="Abrir menu">☰</button>
             <div>
-                <h1 style="font-size: 18px; font-weight: 700;" id="nomeTecnico">Lendo Sessão...</h1>
-                <p style="font-size: 12px; color: var(--texto-secundario);">Gestão colaborativa de chamados</p>
+                <h1 id="tituloPagina">Todas as demandas</h1>
+                <p id="nomeTecnico">Lendo sessão...</p>
             </div>
-            <button class="btn-sair" id="btnSair">Sair (Manual)</button>
         </header>
 
-        <!-- 🚨 CAIXA DE ALERTA DE DIAGNÓSTICO -->
-        <div id="telaErro" style="display: none; padding: 24px; background: #ffebee; color: #c62828; border: 2px solid #ef5350; border-radius: 8px; margin: 20px 0; font-size: 16px; font-weight: bold; text-align: center;">
-            <!-- O erro vai aparecer aqui dentro -->
-        </div>
+        <div id="telaErro" class="alerta-erro" hidden></div>
 
         <section class="card-formulario">
             <h2>Novo chamado</h2>
             <form id="formDemanda">
                 <div class="grid-formulario">
-                    <label>Categoria
+                    <label>Tipo de OS
                         <select id="tipoManutencao" required>
-                            <option value="Elétrica">Elétrica</option>
-                            <option value="Hidráulica">Hidráulica</option>
-                            <option value="Patrimônio">Patrimônio</option>
-                            <option value="Limpeza">Limpeza</option>
-                            <option value="Marcenaria">Marcenaria</option>
-                            <option value="Alvenaria">Alvenaria</option>
-                            <option value="TI">TI</option>
+                            <option>Elétrica</option><option>Hidráulica</option><option>Patrimônio</option>
+                            <option>Limpeza</option><option>Marcenaria</option><option>Alvenaria</option>
+                            <option>Geral</option><option>TI</option>
                         </select>
                     </label>
                     <label>Prioridade
-                        <select id="prioridade" required>
-                            <option value="Baixa">Baixa</option>
-                            <option value="Média" selected>Média</option>
-                            <option value="Alta">Alta</option>
-                        </select>
+                        <select id="prioridade" required><option>Baixa</option><option selected>Média</option><option>Alta</option></select>
                     </label>
                 </div>
-                <label>Unidade / setor
-                    <select id="unidadeAtendida" required>
-                        <option value="" disabled selected>Carregando unidades...</option>
-                    </select>
+                <label>Instituição / unidade
+                    <select id="unidadeAtendida" required><option value="" disabled selected>Carregando unidades...</option></select>
                 </label>
-                <label>Quem será atendido
-                    <input id="quemAtendido" maxlength="200">
-                </label>
-                <label>Descrição
-                    <textarea id="descricao" rows="3" maxlength="3000"></textarea>
-                </label>
+                <label>Quem será atendido<input id="quemAtendido" maxlength="200"></label>
+                <label>Descrição<textarea id="descricao" rows="3" maxlength="3000"></textarea></label>
                 <button type="submit" class="btn-criar">Abrir chamado</button>
             </form>
         </section>
 
-        <!-- FILAS DE ORDENS DO DIA -->
-        <div id="listaOrdens">
-            <div style="text-align: center; color: var(--texto-secundario); padding: 40px;" id="statusConexao">
-                Verificando autenticação no Firebase...
-            </div>
-        </div>
-    </div>
+        <section class="barra-busca">
+            <select id="filtroBusca" aria-label="Campo de busca">
+                <option value="protocolo">Protocolo</option>
+                <option value="prioridade">Prioridade</option>
+                <option value="data">Data de solicitação</option>
+            </select>
+            <input id="inputBusca" type="search" placeholder="Número do protocolo">
+            <button id="limparBusca" type="button">Limpar</button>
+        </section>
 
-    <!-- SCRIPT BLINDADO (Fim do Loop) -->
+        <section id="listaOrdens"><div class="estado-lista">Buscando demandas...</div></section>
+    </main>
+
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria', 'Geral', 'TI'];
+        const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
-        const normalizarCargo = (cargo) => String(cargo || '').trim()
-            .toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        let cargoUsuario = null;
-        let perfilUsuarioAtual = null;
-        const demandasVisiveis = new Set();
+        const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const optionsHtml = (opcoes, selecionada) => opcoes.map(opcao =>
+            `<option value="${escapeHtml(opcao)}" ${opcao === selecionada ? 'selected' : ''}>${escapeHtml(opcao)}</option>`
+        ).join('');
 
-        // Função para mostrar erro sem recarregar a página
-        function mostrarErroNaTela(mensagem) {
-            const divErro = document.getElementById('telaErro');
-            divErro.style.display = 'block';
-            divErro.innerHTML = mensagem;
-            document.getElementById('statusConexao').style.display = 'none';
+        let perfilUsuarioAtual = null;
+        let demandas = [];
+        let filtroStatus = 'todos';
+        let filtroCategoria = 'todas';
+
+        function mostrarErro(mensagem) {
+            const caixa = document.getElementById('telaErro');
+            caixa.hidden = false;
+            caixa.textContent = mensagem;
         }
 
-        // 🔒 SISTEMA DE VERIFICAÇÃO ESTÁTICO (Nunca te joga de volta)
+        function fecharSidebar() {
+            document.getElementById('sidebar').classList.remove('aberta');
+            document.getElementById('sidebarBackdrop').classList.remove('visivel');
+            document.body.classList.remove('menu-mobile-aberto');
+        }
+
+        document.getElementById('btnToggleSidebar').addEventListener('click', () => {
+            const aberta = document.getElementById('sidebar').classList.toggle('aberta');
+            document.getElementById('sidebarBackdrop').classList.toggle('visivel', aberta);
+            document.body.classList.toggle('menu-mobile-aberto', aberta);
+        });
+        document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebar);
+
+        document.querySelectorAll('.menu-item[data-filtro-status]').forEach(botao => {
+            botao.addEventListener('click', () => {
+                document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('ativo'));
+                botao.classList.add('ativo');
+                filtroStatus = botao.dataset.filtroStatus;
+                filtroCategoria = botao.dataset.filtroCategoria;
+                document.getElementById('tituloPagina').textContent = botao.textContent.trim();
+                renderizarDemandas();
+                fecharSidebar();
+            });
+        });
+
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                mostrarErroNaTela("🚨 SESSÃO PERDIDA!<br><br>O Google validou o seu login na tela inicial, mas a sessão foi 'apagada' durante a troca de página.<br><br>💡 DICA: Se você estiver usando uma <b>Guia Anônima</b>, ela bloqueia o repasse da sessão por segurança. Tente fazer o login usando uma guia normal do navegador.");
+                mostrarErro('Sessão não encontrada. Entre novamente.');
                 return;
             }
-
-            document.getElementById('nomeTecnico').innerText = user.displayName || "Técnico(a)";
-            document.getElementById('statusConexao').innerText = "Autenticado com sucesso! Buscando demandas...";
-
             try {
-                const userDocRef = doc(db, "usuarios", user.uid);
-                const userDoc = await getDoc(userDocRef);
-                
-                if (userDoc.exists()) {
-                    const dadosPerfil = userDoc.data();
-                    
-                    if (!String(dadosPerfil.cargo || '').trim()) {
-                        mostrarErroNaTela("Acesso bloqueado: o perfil não possui cargo válido.");
-                        return;
-                    }
-                } else {
-                    mostrarErroNaTela("Acesso bloqueado: perfil de técnico não encontrado.");
+                const perfilDoc = await getDoc(doc(db, 'usuarios', user.uid));
+                if (!perfilDoc.exists() || !String(perfilDoc.data().cargo || '').trim()) {
+                    mostrarErro('Perfil sem cargo válido.');
                     return;
                 }
-                
-                cargoUsuario = userDoc.data().cargo;
-                perfilUsuarioAtual = {
-                    uid: user.uid,
-                    nome: userDoc.data().nome || user.displayName || 'Profissional',
-                    cargo: cargoUsuario
-                };
-                document.getElementById('nomeTecnico').innerText = normalizarCargo(cargoUsuario) === 'ti'
-                    ? `${user.displayName || "Profissional"} - TI`
-                    : user.displayName || "Técnico(a)";
-                document.getElementById('telaErro').style.display = 'none';
+                const perfil = perfilDoc.data();
+                perfilUsuarioAtual = { uid: user.uid, nome: perfil.nome || user.displayName || 'Usuário', cargo: perfil.cargo };
+                document.getElementById('nomeTecnico').textContent = `${perfilUsuarioAtual.nome} — ${perfilUsuarioAtual.cargo}`;
                 inicializarUnidades();
-                inicializarFilaTempoReal();
-
+                inicializarDemandas();
             } catch (error) {
-                console.error("Falha ao validar o perfil:", error);
-                const codigo = error?.code ? ` (${escapeHtml(error.code)})` : '';
-                mostrarErroNaTela(`Não foi possível validar as suas permissões${codigo}. Atualize a página ou entre novamente.`);
+                console.error('Falha ao validar perfil:', error);
+                mostrarErro(`Falha ao validar perfil: ${error.code || 'erro-desconhecido'}`);
             }
         });
 
         function inicializarUnidades() {
             const select = document.getElementById('unidadeAtendida');
-            onSnapshot(query(collection(db, 'unidades')), (snapshot) => {
-                const unidades = [];
-                snapshot.forEach(documento => {
-                    const unidade = documento.data();
-                    if (unidade.nome) unidades.push(unidade.nome);
-                });
-                unidades.sort((a, b) => a.localeCompare(b, 'pt-BR'));
-                select.innerHTML = '<option value="" disabled selected>Selecione a unidade...</option>' +
-                    unidades.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
-                if (unidades.length === 0) {
-                    select.innerHTML = '<option value="" disabled selected>Nenhuma unidade cadastrada</option>';
-                }
-            }, (error) => {
+            onSnapshot(query(collection(db, 'unidades')), snapshot => {
+                const nomes = [];
+                snapshot.forEach(item => { if (item.data().nome) nomes.push(item.data().nome); });
+                nomes.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+                select.innerHTML = '<option value="" disabled selected>Selecione a instituição...</option>' +
+                    nomes.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
+            }, error => {
                 console.error('Erro ao carregar unidades:', error);
-                select.innerHTML = `<option value="" disabled selected>Erro: ${escapeHtml(error.code || 'falha-na-leitura')}</option>`;
+                select.innerHTML = '<option value="" disabled>Falha ao carregar instituições</option>';
             });
         }
 
-        function inicializarFilaTempoReal() {
-            const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));
-            
-            onSnapshot(q, (snapshot) => {
-                const container = document.getElementById('listaOrdens');
-                if (!container) return;
-                container.innerHTML = '';
+        function dataSolicitacao(demanda) {
+            const valor = demanda.criado_em || demanda.prazo_limite || '';
+            if (typeof valor !== 'string') return '';
+            const data = new Date(valor.replace('Solicitado em:', '').trim());
+            return Number.isNaN(data.getTime()) ? '' : data.toISOString().slice(0, 10);
+        }
 
-                const demandasAtivas = [];
-                demandasVisiveis.clear();
-                snapshot.forEach(doc => {
-                    const dados = doc.data();
-                    demandasAtivas.push({ idDoc: doc.id, ...dados });
-                    demandasVisiveis.add(doc.id);
-                });
+        function formatarData(demanda) {
+            const dataIso = dataSolicitacao(demanda);
+            if (!dataIso) return 'Não informada';
+            return new Date(`${dataIso}T12:00:00`).toLocaleDateString('pt-BR');
+        }
 
-                demandasAtivas.sort((a, b) => Number(b.protocolo || 0) - Number(a.protocolo || 0));
+        function demandaAtendeFiltros(demanda) {
+            if (filtroStatus !== 'todos' && demanda.status !== filtroStatus) return false;
+            const ehTi = normalizar(demanda.tipo_manutencao) === 'ti';
+            if (filtroCategoria === 'ti' && !ehTi) return false;
+            if (filtroCategoria === 'geral' && ehTi) return false;
+            const termo = normalizar(document.getElementById('inputBusca').value);
+            if (!termo) return true;
+            const campo = document.getElementById('filtroBusca').value;
+            if (campo === 'prioridade') return normalizar(demanda.prioridade).includes(termo);
+            if (campo === 'data') return dataSolicitacao(demanda).includes(termo);
+            return String(demanda.protocolo || '').includes(termo.replace('#', ''));
+        }
 
-                if (demandasAtivas.length === 0) {
-                    container.innerHTML = `
-                        <div style="text-align:center; padding: 48px 16px; background: var(--bg-card); border-radius:12px; border:1px solid var(--borda);">
-                            <span style="font-size: 32px;">🎉</span>
-                            <p style="margin-top:10px; font-weight:600;">Nenhum chamado cadastrado.</p>
-                        </div>`;
-                    return;
-                }
+        function renderizarDemandas() {
+            const container = document.getElementById('listaOrdens');
+            const filtradas = demandas.filter(demandaAtendeFiltros);
+            if (!filtradas.length) {
+                container.innerHTML = '<div class="estado-lista">Nenhuma demanda encontrada.</div>';
+                return;
+            }
+            container.innerHTML = filtradas.map(d => {
+                const corStatus = d.status === 'Concluído' ? 'var(--status-concluido)'
+                    : d.status === 'Cancelado' ? 'var(--status-cancelado)'
+                    : d.status === 'Em Andamento' ? 'var(--status-andamento)' : 'var(--status-pendente)';
+                const alteradoPor = d.status_alterado_por?.nome
+                    ? `${d.status_alterado_por.nome} (${d.status_alterado_por.cargo || 'cargo não informado'})` : 'Não registrado';
+                return `<article class="card-demanda" data-id="${escapeHtml(d.idDoc)}">
+                    <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
+                    <div class="grid-edicao">
+                        <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, d.prioridade)}</select></label>
+                        <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, d.tipo_manutencao || 'Geral')}</select></label>
+                        <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${escapeHtml(d.unidade_atendida)}"></label>
+                    </div>
+                    <div class="detalhe"><b>Solicitado em:</b> ${escapeHtml(formatarData(d))}</div>
+                    <div class="detalhe"><b>Atendido:</b> ${escapeHtml(d.quem_atendido || 'Não informado')}</div>
+                    <div class="caixa-descricao"><b>Solicitação:</b><br>${escapeHtml(d.descricao || 'Sem descrição.')}</div>
+                    <label class="parecer-label">Parecer técnico<textarea data-campo="observacao_tecnico" rows="3" maxlength="5000">${escapeHtml(d.observacao_tecnico)}</textarea></label>
+                    <div class="detalhe"><b>Última alteração:</b> ${escapeHtml(alteradoPor)}</div>
+                    <button class="btn-salvar" data-acao="salvar" data-demanda-id="${escapeHtml(d.idDoc)}">Salvar edição</button>
+                    <div class="acoes-grupo">
+                        <button class="btn-acao pendente" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Pendente">Pendente</button>
+                        <button class="btn-acao andamento" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Em Andamento">Iniciar</button>
+                        <button class="btn-acao concluido" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Concluído">Concluir</button>
+                        <button class="btn-acao cancelado" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Cancelado">Cancelar</button>
+                    </div>
+                </article>`;
+            }).join('');
+        }
 
-                demandasAtivas.forEach((d) => {
-                    let prazoTexto = d.prazo_limite || "Não definido";
-                    const responsavelStatus = d.status_alterado_por;
-                    let alteracaoStatusTexto = 'Não registrada';
-                    if (responsavelStatus && responsavelStatus.nome) {
-                        const dataAlteracao = d.status_alterado_em?.toDate
-                            ? d.status_alterado_em.toDate()
-                            : d.status_alterado_em ? new Date(d.status_alterado_em) : null;
-                        const dataTexto = dataAlteracao && !isNaN(dataAlteracao) ? ` em ${dataAlteracao.toLocaleString('pt-BR')}` : '';
-                        alteracaoStatusTexto = `${responsavelStatus.nome} (${responsavelStatus.cargo || 'cargo não informado'})${dataTexto}`;
-                    }
-                    let corStatus = 'var(--status-pendente)';
-                    if(d.status === 'Em Andamento') corStatus = 'var(--status-andamento)';
-                    if(d.status === 'Concluído') corStatus = 'var(--status-concluido)';
-                    if(d.status === 'Cancelado') corStatus = 'var(--status-cancelado)';
-
-                    d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
-                    alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
-                    container.innerHTML += `
-                        <div class="card-demanda">
-                            <div class="header-demanda">
-                                <span class="protocolo">#${d.protocolo}</span>
-                                <span class="badge" style="background: ${corStatus}">${d.status}</span>
-                            </div>
-                            <div class="detalhe"><b>Tipo OS:</b> ${d.tipo_manutencao || 'Geral'}</div>
-                            <div class="detalhe"><b>Instituição/Unidade:</b> ${d.unidade_atendida || 'Não informada'}</div>
-                            <div class="detalhe"><b>Colaborador Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
-                            <div class="detalhe"><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
-                            <div class="detalhe"><b>Última alteração de status:</b> ${alteracaoStatusTexto}</div>
-                            
-                            <div class="caixa-descricao">
-                                <b>Solicitação do Supervisor:</b><br>
-                                ${d.descricao || 'Sem observações adicionais.'}
-                            </div>
-                            
-                            <textarea class="observacao-box" id="obs-${d.idDoc}" rows="2" placeholder="Digite aqui o parecer técnico do atendimento...">${d.observacao_tecnico || ''}</textarea>
-                            
-                            <div class="acoes-grupo">
-                                <button class="btn-acao" style="background: var(--status-pendente)" data-demanda-id="${d.idDoc}" data-novo-status="Pendente">Pendente</button>
-                                <button class="btn-acao" style="background: var(--status-andamento)" data-demanda-id="${d.idDoc}" data-novo-status="Em Andamento">Iniciar</button>
-                                <button class="btn-acao" style="background: var(--status-concluido)" data-demanda-id="${d.idDoc}" data-novo-status="Concluído">Concluir</button>
-                                <button class="btn-acao" style="background: var(--status-cancelado)" data-demanda-id="${d.idDoc}" data-novo-status="Cancelado">Cancelar</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            }, (error) => {
-                 console.error("Erro ao carregar demandas:", error);
-                 mostrarErroNaTela(`⛔ ERRO AO CARREGAR DEMANDAS:<br>${escapeHtml(error.code || 'erro-desconhecido')}<br><small>${escapeHtml(error.message || 'Falha na leitura do Firestore.')}</small>`);
+        function inicializarDemandas() {
+            onSnapshot(query(collection(db, 'demandas'), orderBy('protocolo', 'desc')), snapshot => {
+                demandas = snapshot.docs.map(item => ({ idDoc: item.id, ...item.data() }));
+                renderizarDemandas();
+            }, error => {
+                console.error('Erro ao carregar demandas:', error);
+                mostrarErro(`Erro ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
             });
         }
 
-        async function mudarStatusOs(idDoc, novoStatus) {
-            if (!STATUS_PERMITIDOS.has(novoStatus)) return;
-            if (!perfilUsuarioAtual) return;
-            if (!demandasVisiveis.has(idDoc)) {
-                alert("Você não tem permissão para alterar esta demanda.");
-                return;
-            }
-            const txtObservacao = document.getElementById(`obs-${idDoc}`).value.trim();
-            if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && txtObservacao === '') {
-                alert("Por favor, preencha a observação!");
-                return;
-            }
-            const docRef = doc(db, "demandas", idDoc);
-            try {
-                await updateDoc(docRef, { 
-                    status: novoStatus, 
-                    observacao_tecnico: txtObservacao,
-                    status_alterado_por: perfilUsuarioAtual,
-                    status_alterado_em: serverTimestamp(),
-                    ...(novoStatus === 'Concluído' || novoStatus === 'Cancelado' ? { concluido_em: new Date().toISOString() } : {})
-                });
-                alert(`Sucesso! Status alterado para: ${novoStatus}`);
-            } catch (error) {
-                alert("Falha ao salvar dados.");
-            }
+        function dadosEditados(idDoc) {
+            const card = document.querySelector(`.card-demanda[data-id="${CSS.escape(idDoc)}"]`);
+            return {
+                card,
+                prioridade: card.querySelector('[data-campo="prioridade"]').value,
+                tipo_manutencao: card.querySelector('[data-campo="tipo_manutencao"]').value,
+                unidade_atendida: card.querySelector('[data-campo="unidade_atendida"]').value.trim(),
+                observacao_tecnico: card.querySelector('[data-campo="observacao_tecnico"]').value.trim()
+            };
         }
 
-        document.getElementById('formDemanda').addEventListener('submit', async (event) => {
-            event.preventDefault();
+        async function salvarEdicao(idDoc, novoStatus = null) {
             if (!perfilUsuarioAtual) return;
-
+            const dados = dadosEditados(idDoc);
+            if (!dados.unidade_atendida) return alert('Informe a instituição.');
+            if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && !dados.observacao_tecnico) {
+                return alert('Preencha o parecer técnico para concluir ou cancelar.');
+            }
             const payload = {
-                tipo_manutencao: document.getElementById('tipoManutencao').value,
-                unidade_atendida: document.getElementById('unidadeAtendida').value.trim(),
-                quem_atendido: document.getElementById('quemAtendido').value.trim(),
-                prioridade: document.getElementById('prioridade').value,
-                descricao: document.getElementById('descricao').value.trim(),
-                status: 'Pendente',
-                prazo_limite: new Date().toISOString(),
-                observacao_tecnico: '',
+                prioridade: dados.prioridade,
+                tipo_manutencao: dados.tipo_manutencao,
+                unidade_atendida: dados.unidade_atendida,
+                observacao_tecnico: dados.observacao_tecnico,
                 status_alterado_por: perfilUsuarioAtual,
                 status_alterado_em: serverTimestamp()
             };
+            if (novoStatus) payload.status = novoStatus;
+            if (novoStatus === 'Concluído' || novoStatus === 'Cancelado') payload.concluido_em = new Date().toISOString();
+            try {
+                await updateDoc(doc(db, 'demandas', idDoc), payload);
+                alert(novoStatus ? `Status alterado para ${novoStatus}.` : 'Demanda atualizada.');
+            } catch (error) {
+                console.error('Falha ao atualizar demanda:', error);
+                alert(`Falha ao atualizar: ${error.code || 'erro-desconhecido'}`);
+            }
+        }
 
+        document.addEventListener('click', event => {
+            const botao = event.target.closest('[data-acao][data-demanda-id]');
+            if (!botao) return;
+            salvarEdicao(botao.dataset.demandaId, botao.dataset.acao === 'status' ? botao.dataset.novoStatus : null);
+        });
+
+        document.getElementById('formDemanda').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!perfilUsuarioAtual) return;
+            const payload = {
+                tipo_manutencao: document.getElementById('tipoManutencao').value,
+                unidade_atendida: document.getElementById('unidadeAtendida').value,
+                quem_atendido: document.getElementById('quemAtendido').value.trim(),
+                prioridade: document.getElementById('prioridade').value,
+                descricao: document.getElementById('descricao').value.trim(),
+                status: 'Pendente', prazo_limite: new Date().toISOString(), observacao_tecnico: '',
+                status_alterado_por: perfilUsuarioAtual, status_alterado_em: serverTimestamp()
+            };
             try {
                 let protocolo;
-                await runTransaction(db, async (transaction) => {
+                await runTransaction(db, async transaction => {
                     const contadorRef = doc(db, 'configuracoes', 'contador_protocolo');
                     const contadorDoc = await transaction.get(contadorRef);
                     protocolo = contadorDoc.exists() ? Number(contadorDoc.data().ultimo_numero || 999) + 1 : 1000;
                     transaction.set(contadorRef, { ultimo_numero: protocolo }, { merge: true });
                     transaction.set(doc(collection(db, 'demandas')), { ...payload, protocolo });
                 });
-                alert(`Chamado #${protocolo} aberto com sucesso!`);
+                alert(`Chamado #${protocolo} aberto.`);
                 event.target.reset();
             } catch (error) {
                 console.error('Erro ao abrir chamado:', error);
@@ -299,17 +302,18 @@
             }
         });
 
-        document.addEventListener('click', (event) => {
-            const botao = event.target.closest('[data-demanda-id]');
-            if (botao) mudarStatusOs(botao.dataset.demandaId, botao.dataset.novoStatus);
-        });
-
-        // Redirecionamento manual agora (apenas se o usuário clicar em Sair)
-        document.getElementById('btnSair').addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = '../index.html';
-            });
-        });
+        function configurarCampoBusca() {
+            const campo = document.getElementById('filtroBusca').value;
+            const input = document.getElementById('inputBusca');
+            input.value = '';
+            input.type = campo === 'data' ? 'date' : 'search';
+            input.placeholder = campo === 'prioridade' ? 'Baixa, Média ou Alta' : campo === 'data' ? '' : 'Número do protocolo';
+            renderizarDemandas();
+        }
+        document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);
+        document.getElementById('inputBusca').addEventListener('input', renderizarDemandas);
+        document.getElementById('limparBusca').addEventListener('click', () => { document.getElementById('inputBusca').value = ''; renderizarDemandas(); });
+        document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     </script>
 </body>
 </html>
