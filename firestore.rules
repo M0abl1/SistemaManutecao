@@ -52,11 +52,10 @@ service cloud.firestore {
     }
 
     function isOperational() {
-      return hasProfile() && profile().data.cargo in [
-        'supervisor', 'Supervisor', 'SUPERVISOR',
-        'tecnico', 'Tecnico', 'TECNICO', 'técnico', 'Técnico', 'TÉCNICO',
-        'ti', 'TI', 'Ti'
-      ];
+      return hasProfile() &&
+        profile().data.cargo is string &&
+        profile().data.cargo.size() >= 1 &&
+        profile().data.cargo.size() <= 40;
     }
 
     function validText(value, minSize, maxSize) {
@@ -89,11 +88,7 @@ service cloud.firestore {
         actor.keys().hasOnly(['uid', 'nome', 'cargo']) &&
         validText(actor.uid, 1, 128) &&
         validText(actor.nome, 1, 120) &&
-        actor.cargo in [
-          'supervisor', 'Supervisor', 'SUPERVISOR',
-          'tecnico', 'Tecnico', 'TECNICO', 'técnico', 'Técnico', 'TÉCNICO',
-          'ti', 'TI', 'Ti'
-        ];
+        validText(actor.cargo, 1, 40);
     }
 
     function validOptionalStatusAudit(data) {
@@ -168,11 +163,19 @@ service cloud.firestore {
 
     function canOperationalUpdateDemanda() {
       return isOperational() &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly([
-            'status', 'observacao_tecnico', 'concluido_em',
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'prioridade', 'tipo_manutencao', 'unidade_atendida',
+            'observacao_tecnico', 'concluido_em',
             'status_alterado_por', 'status_alterado_em'
-          ]) &&
+          ]) ||
+          (isSupervisor() &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'status', 'prioridade', 'tipo_manutencao', 'unidade_atendida',
+             'descricao', 'observacao_tecnico', 'concluido_em',
+             'status_alterado_por', 'status_alterado_em'
+           ]))
+        ) &&
         request.resource.data.status in [
           'Pendente', 'Em Andamento', 'Concluído', 'Cancelado'
         ] &&

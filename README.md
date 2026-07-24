@@ -11,7 +11,9 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Atualização em tempo real das demandas.
 - Alteração do status: **Pendente**, **Em Andamento**, **Concluído** e **Cancelado**.
 - Parecer técnico obrigatório ao concluir ou cancelar uma demanda.
-- Filtros na listagem por todos os campos, número de protocolo ou tipo de demanda.
+- Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.
+- Edição de prioridade, tipo de OS, instituição e parecer técnico diretamente na demanda; o supervisor também pode corrigir o relato original.
+- Listagem de pendentes por prioridade na ordem Alta, Média e Baixa, além de busca por protocolo e data de solicitação.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
 
 ## Perfis de acesso
@@ -99,6 +101,6 @@ O comando publica o conteúdo de `public/` e as regras versionadas. Mantenha as 
 ## Validação manual recomendada
 
 1. Entre como `supervisor`, crie uma demanda TI e outra de qualquer categoria e confirme que ambas aparecem no painel.
-2. Entre como `ti`, abra um chamado e confirme que pode visualizar e atualizar qualquer categoria.
-3. Entre como `tecnico` e confirme o mesmo fluxo colaborativo, incluindo edição do relato técnico.
+2. Entre como `ti`, filtre as demandas de TI e de manutenção geral e edite prioridade, tipo, instituição e parecer.
+3. Entre como `tecnico` e confirme os mesmos filtros e edição, sem acesso ao cadastro de unidades/setores.
 4. Conclua ou cancele uma demanda com parecer preenchido e confira o registro no painel do supervisor.

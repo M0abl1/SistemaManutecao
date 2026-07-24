@@ -152,6 +152,11 @@ input, select, textarea {
 .secao-painel { display: none; }
 .secao-painel.ativa { display: block; }
 
+.grid-edicao-demanda { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.grid-edicao-demanda label { display: grid; gap: 5px; font-size: 13px; color: var(--texto-secundario); }
+.grid-edicao-demanda .campo-largo { grid-column: 1 / -1; }
+.btn-salvar-edicao { width: 100%; margin-top: 10px; }
+
 .tabela-demandas { width: 100%; border-collapse: collapse; margin-top: 16px; }
 .tabela-demandas th, .tabela-demandas td { padding: 14px; text-align: left; border-bottom: 1px solid var(--borda); }
 .tabela-demandas th { background: var(--bg-principal); color: var(--texto-secundario); font-size: 13px; font-weight: 600; }
@@ -168,6 +173,8 @@ input, select, textarea {
     .sidebar-backdrop.visivel { opacity: 1; visibility: visible; }
     body.menu-mobile-aberto { overflow: hidden; }
     .conteudo-principal { margin-left: 0 !important; padding: 16px; }
+    .grid-edicao-demanda { grid-template-columns: 1fr; }
+    .grid-edicao-demanda .campo-largo { grid-column: auto; }
     .tabela-demandas thead { display: none; }
     .tabela-demandas tr { display: block; background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; margin-bottom: 12px; padding: 12px; }
     .tabela-demandas td { display: flex; justify-content: space-between; padding: 8px 0; border: none; font-size: 14px; text-align: right; }

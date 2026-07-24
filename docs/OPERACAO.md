@@ -7,8 +7,9 @@ O supervisor acessa o painel de gestão e possui visão completa das demandas, i
 - cadastrar unidades e setores;
 - abrir demandas e escolher a categoria TI;
 - consultar demandas de todos os status e categorias;
-- pesquisar por protocolo, tipo ou conteúdo;
-- alterar o status de qualquer demanda.
+- filtrar pela sidebar as demandas de TI ou de manutenção geral;
+- pesquisar por prioridade, protocolo ou data de solicitação;
+- editar prioridade, tipo de OS, instituição, relato original, parecer técnico e status.
 
 ### Abrir uma demanda
 
@@ -21,7 +22,7 @@ O protocolo é sequencial e controlado pelo documento `configuracoes/contador_pr
 
 ## Técnico
 
-O cargo `tecnico` usa o painel colaborativo para abrir, visualizar e atualizar chamados de qualquer categoria e status. Também pode preencher ou editar o relato técnico.
+O cargo `tecnico` usa o painel colaborativo com sidebar para abrir, visualizar e atualizar chamados de qualquer categoria e status. Pode separar demandas de TI e manutenção geral, pesquisar e editar prioridade, tipo de OS, instituição e parecer técnico.
 
 Ao abrir um chamado, a unidade deve ser escolhida na lista mantida pelo supervisor. Técnico e TI podem consultar unidades, mas somente o supervisor pode cadastrá-las.
 
@@ -30,6 +31,17 @@ O parecer é obrigatório para concluir ou cancelar uma demanda.
 ## TI
 
 O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões operacionais sobre os chamados. A distinção de cargo permanece apenas para identificação e auditoria de quem realizou cada alteração.
+
+## Sidebar e busca
+
+- **Todas as demandas:** remove o filtro de categoria.
+- **Demandas de TI:** mostra somente `tipo_manutencao = TI`.
+- **Manutenção geral:** mostra todas as categorias diferentes de TI.
+- As filas de status mostram pendentes, em andamento, concluídas ou canceladas.
+- Ao selecionar **Prioridade** em **Todas**, a listagem mostra pendentes na ordem **Alta, Média e Baixa**. Em uma aba de status, a aba prevalece e a ordenação é aplicada somente às demandas daquele status.
+- As demais buscas aceitam número do protocolo e data de solicitação.
+- **Unidades / Setores** aparece somente no painel do supervisor.
+- O **relato original** também é editável somente pelo supervisor.
 
 ## Fluxo de status
 
@@ -64,5 +76,5 @@ Evite conceder `supervisor` sem necessidade, pois esse perfil possui visão e co
 - Cargos técnico e TI visualizam e atualizam chamados de todas as categorias e status.
 - Cargos técnico e TI conseguem abrir novos chamados.
 - Parecer vazio bloqueia conclusão e cancelamento.
-- Toda alteração registra o responsável autenticado e o horário do servidor.
-- Usuário sem cargo permitido tem a sessão encerrada.
+- Toda edição ou alteração de status registra o responsável autenticado e o horário do servidor.
+- Usuário sem perfil/cargo válido não acessa os dados operacionais.
