@@ -16,7 +16,7 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | Campo | Tipo | Obrigatório | Descrição |
 | --- | --- | --- | --- |
 | `protocolo` | number | Sim | Número sequencial da demanda |
-| `tipo_manutencao` | string | Sim | Categoria, incluindo `TI` |
+| `tipo_manutencao` | string | Sim | Categoria da OS: elétrica, hidráulica, patrimônio, limpeza, marcenaria, alvenaria, cobertura, serralheria, montagem de mobiliário/equipamentos, geral, outros ou TI |
 | `unidade_atendida` | string | Sim | Unidade ou setor solicitante |
 | `quem_atendido` | string | Não | Pessoa ou local atendido |
 | `prioridade` | string | Sim | `Baixa`, `Média` ou `Alta` |

@@ -7,6 +7,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Login com conta Google.
 - Controle de acesso por perfil: `supervisor`, `tecnico` e `ti`.
 - Cadastro de unidades/setores e abertura de chamados.
+- Categorias adicionais: cobertura/telhados, serralheria, montagem de mobiliário e equipamentos, geral e outros.
 - Pesquisa de escola/unidade em lista suspensa ao abrir um chamado.
 - Numeração sequencial de protocolos.
 - Atualização em tempo real das demandas.

@@ -93,6 +93,11 @@
                                 <option value="Limpeza">Limpeza</option>
                                 <option value="Marcenaria">Marcenaria</option>
                                 <option value="Alvenaria">Alvenaria</option>
+                                <option value="Cobertura (Telhados)">Cobertura (Telhados)</option>
+                                <option value="Serralheria">Serralheria</option>
+                                <option value="Montagem de Mobiliário e Equipamentos">Montagem de Mobiliário e Equipamentos</option>
+                                <option value="Geral">Geral</option>
+                                <option value="Outros">Outros</option>
                                 <option value="TI">TI</option>
                             </select>
                         </div>
@@ -192,7 +197,8 @@
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria', 'Geral', 'TI'];
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
+            'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
         const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
