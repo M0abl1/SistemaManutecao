@@ -9,7 +9,7 @@ O supervisor acessa o painel de gestão e possui visão completa das demandas, i
 - consultar demandas de todos os status e categorias;
 - filtrar pela sidebar as demandas de TI ou de manutenção geral;
 - pesquisar por prioridade, protocolo ou data de solicitação;
-- editar prioridade, tipo de OS, instituição, parecer técnico e status.
+- editar prioridade, tipo de OS, instituição, relato original, parecer técnico e status.
 
 ### Abrir uma demanda
 
@@ -41,6 +41,7 @@ O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões oper
 - Ao selecionar **Prioridade** em **Todas**, a listagem mostra pendentes na ordem **Alta, Média e Baixa**. Em uma aba de status, a aba prevalece e a ordenação é aplicada somente às demandas daquele status.
 - As demais buscas aceitam número do protocolo e data de solicitação.
 - **Unidades / Setores** aparece somente no painel do supervisor.
+- O **relato original** também é editável somente pelo supervisor.
 
 ## Fluxo de status
 

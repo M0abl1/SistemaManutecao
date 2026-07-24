@@ -30,7 +30,7 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 
 `tipo_manutencao` identifica a categoria do chamado, mas não limita sua visibilidade: todos os usuários operacionais podem atuar em qualquer categoria.
 
-Os campos editáveis após a criação são `prioridade`, `tipo_manutencao`, `unidade_atendida`, `observacao_tecnico`, `status` e, quando aplicável, `concluido_em`. Protocolo, descrição original, solicitante e data de abertura permanecem protegidos.
+Todos os perfis podem editar `prioridade`, `tipo_manutencao`, `unidade_atendida`, `observacao_tecnico`, `status` e, quando aplicável, `concluido_em`. Somente o supervisor pode alterar `descricao`. Protocolo, solicitante e data de abertura permanecem protegidos.
 
 ## `unidades/{id}`
 

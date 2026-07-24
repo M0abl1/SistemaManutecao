@@ -421,7 +421,9 @@ if (d.prazo_limite) {
                     <div style="color: var(--texto-secundario, #666);"><b>Data de Abertura:</b> ${prazoTexto}</div>
                     <div style="color: var(--texto-secundario, #666);"><b>Última alteração de status:</b> ${alteracaoStatusTexto}</div>
                     
-                    <div style="margin-top: 10px;"><b>Relato Original:</b> ${d.descricao || 'Sem observações iniciais.'}</div>
+                    <label style="display:grid; gap:6px; margin-top:10px;"><b>Relato Original:</b>
+                        <textarea data-campo="descricao" rows="3" maxlength="3000" placeholder="Relato original da solicitação">${d.descricao || ''}</textarea>
+                    </label>
                     
                     <div style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 4px;">
                         <b style="color: #3b82f6;">📋 Parecer do Técnico:</b><br>
@@ -486,6 +488,7 @@ if (d.prazo_limite) {
                     prioridade: card.querySelector('[data-campo="prioridade"]').value,
                     tipo_manutencao: card.querySelector('[data-campo="tipo_manutencao"]').value,
                     unidade_atendida: unidade,
+                    descricao: card.querySelector('[data-campo="descricao"]').value.trim(),
                     observacao_tecnico: observacao,
                     status_alterado_por: perfilUsuarioAtual,
                     status_alterado_em: serverTimestamp()

@@ -163,12 +163,19 @@ service cloud.firestore {
 
     function canOperationalUpdateDemanda() {
       return isOperational() &&
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly([
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'status', 'prioridade', 'tipo_manutencao', 'unidade_atendida',
             'observacao_tecnico', 'concluido_em',
             'status_alterado_por', 'status_alterado_em'
-          ]) &&
+          ]) ||
+          (isSupervisor() &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'status', 'prioridade', 'tipo_manutencao', 'unidade_atendida',
+             'descricao', 'observacao_tecnico', 'concluido_em',
+             'status_alterado_por', 'status_alterado_em'
+           ]))
+        ) &&
         request.resource.data.status in [
           'Pendente', 'Em Andamento', 'Concluído', 'Cancelado'
         ] &&
