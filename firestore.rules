@@ -230,7 +230,7 @@ service cloud.firestore {
         uidNotModified(resource.data, request.resource.data) &&
         statusAuditMatchesRequester(request.resource.data) &&
         canOperationalUpdateDemanda();
-      allow delete: if false;
+      allow delete: if isOperational();
     }
 
     match /unidades/{unidadeId} {

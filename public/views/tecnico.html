@@ -76,7 +76,7 @@
 
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
@@ -237,6 +237,7 @@
                         <button class="btn-acao concluido" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Concluído">Concluir</button>
                         <button class="btn-acao cancelado" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Cancelado">Cancelar</button>
                     </div>
+                    <button class="btn-excluir" data-acao="excluir" data-demanda-id="${escapeHtml(d.idDoc)}" data-protocolo="${escapeHtml(d.protocolo)}">Excluir demanda</button>
                 </article>`;
             }).join('');
         }
@@ -288,9 +289,25 @@
             }
         }
 
+        async function excluirDemanda(idDoc, protocolo) {
+            const confirmado = confirm(`Excluir permanentemente a demanda #${protocolo}?\n\nEsta ação não pode ser desfeita.`);
+            if (!confirmado) return;
+            try {
+                await deleteDoc(doc(db, 'demandas', idDoc));
+                alert(`Demanda #${protocolo} excluída.`);
+            } catch (error) {
+                console.error('Falha ao excluir demanda:', error);
+                alert(`Falha ao excluir: ${error.code || 'erro-desconhecido'}`);
+            }
+        }
+
         document.addEventListener('click', event => {
             const botao = event.target.closest('[data-acao][data-demanda-id]');
             if (!botao) return;
+            if (botao.dataset.acao === 'excluir') {
+                excluirDemanda(botao.dataset.demandaId, botao.dataset.protocolo);
+                return;
+            }
             salvarEdicao(botao.dataset.demandaId, botao.dataset.acao === 'status' ? botao.dataset.novoStatus : null);
         });
 

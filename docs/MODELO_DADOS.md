@@ -32,6 +32,8 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 
 Todos os perfis podem editar `prioridade`, `tipo_manutencao`, `unidade_atendida`, `observacao_tecnico`, `status` e, quando aplicável, `concluido_em`. Somente o supervisor pode alterar `descricao`. Protocolo, solicitante e data de abertura permanecem protegidos.
 
+Todos os perfis operacionais podem excluir documentos de `demandas`. A operação é definitiva; o número do protocolo permanece consumido no contador para evitar reutilização.
+
 ## `unidades/{id}`
 
 | Campo | Tipo | Obrigatório | Descrição |
