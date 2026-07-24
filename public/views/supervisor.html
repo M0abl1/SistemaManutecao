@@ -43,8 +43,11 @@
             <div class="menu-item" data-alvo="geral" data-categoria="geral" data-status="todos"><span>🛠️</span> Manutenção Geral</div>
             <div class="menu-item" data-alvo="pendentes" data-categoria="todas" data-status="Pendente"><span>⏳</span> Pendentes</div>
             <div class="menu-item" data-alvo="andamento" data-categoria="todas" data-status="Em Andamento"><span>⚡</span> Em Andamento</div>
-            <div class="menu-item" data-alvo="concluidas" data-categoria="todas" data-status="Concluído"><span>✅</span> Concluídas</div>
+            <div class="menu-item" data-alvo="concluidas" data-categoria="ti" data-status="Concluído"><span>✅</span> Concluídas TI</div>
+            <div class="menu-item" data-alvo="concluidas" data-categoria="geral" data-status="Concluído"><span>✅</span> Concluídas manutenção</div>
             <div class="menu-item" data-alvo="canceladas" data-categoria="todas" data-status="Cancelado"><span>❌</span> Canceladas</div>
+            <div class="menu-item" id="btnEmprestimos"><span>📦</span> Empréstimos</div>
+            <div class="menu-item" id="btnRelatorios"><span>📊</span> Relatórios</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
             <div class="menu-item" id="btnSair" style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #ef4444;">
@@ -93,14 +96,18 @@
                                 <option value="Limpeza">Limpeza</option>
                                 <option value="Marcenaria">Marcenaria</option>
                                 <option value="Alvenaria">Alvenaria</option>
+                                <option value="Cobertura (Telhados)">Cobertura (Telhados)</option>
+                                <option value="Serralheria">Serralheria</option>
+                                <option value="Montagem de Mobiliário e Equipamentos">Montagem de Mobiliário e Equipamentos</option>
+                                <option value="Geral">Geral</option>
+                                <option value="Outros">Outros</option>
                                 <option value="TI">TI</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Unidade / Setor Atendido</label>
-                            <select id="unidadeAtendida" required style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
-                                <option value="" disabled selected>Carregando unidades...</option>
-                            </select>
+                            <label>Pesquisar Escola / Unidade</label>
+                            <input id="unidadeAtendida" list="listaEscolas" required autocomplete="off" placeholder="Digite o nome da escola" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
+                            <datalist id="listaEscolas"></datalist>
                         </div>
                         <div class="form-group">
                             <label>Quem foi Atendido</label>
@@ -111,9 +118,9 @@
                         <div class="form-group">
                             <label>Prioridade</label>
                             <select id="prioridade" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
-                                <option value="Baixa">Baixa</option>
-                                <option value="Média" selected>Média</option>
+                                <option value="Normal" selected>Normal</option>
                                 <option value="Alta">Alta</option>
+                                <option value="Crítico">Crítico</option>
                             </select>
                         </div>
                         <div class="form-group" style="grid-column: span 2;">
@@ -189,15 +196,18 @@
     <!-- SCRIPT DO FIREBASE (Com importação do addDoc inserida) -->
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria', 'Geral', 'TI'];
-        const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
+            'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
+        const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
+        const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
         let supervisorFiltroStatus = 'todos';
+        const escolasDisponiveis = new Set();
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
@@ -240,6 +250,8 @@
             document.body.classList.toggle('menu-mobile-aberto', aberto);
         });
         document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebarMobile);
+        document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
+        document.getElementById('btnRelatorios').addEventListener('click', () => { window.location.href = 'relatorios.html'; });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') fecharSidebarMobile();
         });
@@ -285,24 +297,23 @@
             const q = query(collection(db, "unidades"));
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('corpoTabelaUnidades');
-                const select = document.getElementById('unidadeAtendida');
-                
+                const lista = document.getElementById('listaEscolas');
+                const unidades = snapshot.docs.map(item => item.data()).filter(item => item.nome)
+                    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
                 let htmlTabela = '';
-                let htmlSelect = '<option value="" disabled selected>Selecione a unidade...</option>';
-
-                snapshot.forEach(doc => {
-                    const d = doc.data();
+                escolasDisponiveis.clear();
+                unidades.forEach(d => {
+                    escolasDisponiveis.add(d.nome);
                     htmlTabela += `
                         <tr>
                             <td><b>${escapeHtml(d.nome)}</b></td>
                             <td>${escapeHtml(d.endereco || '-')}</td>
                         </tr>
                     `;
-                    htmlSelect += `<option value="${escapeHtml(d.nome)}">${escapeHtml(d.nome)}</option>`;
                 });
 
                 if (container) container.innerHTML = htmlTabela || '<tr><td colspan="2" style="text-align:center;">Nenhuma unidade cadastrada.</td></tr>';
-                if (select) select.innerHTML = htmlSelect;
+                lista.innerHTML = unidades.map(item => `<option value="${escapeHtml(item.nome)}"></option>`).join('');
             });
         }
 
@@ -329,11 +340,13 @@
         // 🟢 ABRIR NOVO CHAMADO (Demanda)
         document.getElementById('formDemanda').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const escolaSelecionada = document.getElementById('unidadeAtendida').value.trim();
+            if (!escolasDisponiveis.has(escolaSelecionada)) return alert('Selecione uma escola cadastrada na lista.');
             try {
                 // Gera um protocolo numérico aleatório de 6 dígitos
                 const payload = {
                     tipo_manutencao: document.getElementById('tipoManutencao').value,
-                    unidade_atendida: document.getElementById('unidadeAtendida').value,
+                    unidade_atendida: escolaSelecionada,
                     quem_atendido: document.getElementById('quemAtendido').value,
                     prioridade: document.getElementById('prioridade').value,
                     descricao: document.getElementById('descricao').value,
@@ -395,7 +408,8 @@ if (d.prazo_limite) {
 }
 
             const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === d.tipo_manutencao ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
-            const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === d.prioridade ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
+            const prioridadeSelecionada = prioridadeAtual(d.prioridade);
+            const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === prioridadeSelecionada ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
             const dataSolicitacao = (() => {
                 const valor = d.criado_em || d.prazo_limite || '';
                 const data = new Date(String(valor).replace('Solicitado em:', '').trim());
@@ -441,6 +455,7 @@ if (d.prazo_limite) {
                         <button class="btn-acao" style="background: #10b981;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
                         <button class="btn-acao" style="background: #ef4444;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
                     </div>
+                    <button class="btn-acao" style="background:#991b1b; margin-top:8px;" data-acao="excluir" data-demanda-id="${d.id}" data-protocolo="${escapeHtml(d.protocolo)}">Excluir demanda</button>
                 </div>
             `;
         }
@@ -504,9 +519,26 @@ if (d.prazo_limite) {
                 alert("Falha ao salvar dados.");
             }
         }
+
+        async function excluirDemanda(idDoc, protocolo) {
+            const confirmado = confirm(`Excluir permanentemente a demanda #${protocolo}?\n\nEsta ação não pode ser desfeita.`);
+            if (!confirmado) return;
+            try {
+                await deleteDoc(doc(db, 'demandas', idDoc));
+                alert(`Demanda #${protocolo} excluída.`);
+            } catch (error) {
+                console.error('Falha ao excluir demanda:', error);
+                alert(`Falha ao excluir: ${error.code || 'erro-desconhecido'}`);
+            }
+        }
         document.addEventListener('click', (event) => {
             const botao = event.target.closest('[data-acao][data-demanda-id]');
-            if (botao) salvarDemanda(botao.dataset.demandaId, botao.dataset.acao === 'status' ? botao.dataset.novoStatus : null, botao.closest('.card-demanda'));
+            if (!botao) return;
+            if (botao.dataset.acao === 'excluir') {
+                excluirDemanda(botao.dataset.demandaId, botao.dataset.protocolo);
+                return;
+            }
+            salvarDemanda(botao.dataset.demandaId, botao.dataset.acao === 'status' ? botao.dataset.novoStatus : null, botao.closest('.card-demanda'));
         });
         // 🟢 BARRA DE PESQUISA EM TEMPO REAL
         function aplicarFiltroBusca() {
@@ -525,13 +557,18 @@ if (d.prazo_limite) {
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
             });
 
-            const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+            const ordemPrioridade = { 'Crítico': 0, 'Alta': 1, 'Normal': 2, 'Média': 2, 'Baixa': 2 };
+            const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
+                : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
             ['listaGeral', 'listaPendentes', 'listaAndamento', 'listaConcluidas', 'listaCanceladas'].forEach(id => {
                 const container = document.getElementById(id);
                 const cardsContainer = Array.from(container.children).filter(item => item.classList.contains('card-demanda'));
                 cardsContainer.sort((a, b) => modoPrioridade
                     ? (ordemPrioridade[a.dataset.prioridade] ?? 3) - (ordemPrioridade[b.dataset.prioridade] ?? 3) || Number(b.dataset.protocolo) - Number(a.dataset.protocolo)
-                    : Number(b.dataset.protocolo) - Number(a.dataset.protocolo));
+                    : grupoStatus(a.dataset.status) - grupoStatus(b.dataset.status)
+                        || (grupoStatus(a.dataset.status) === 0
+                            ? Number(a.dataset.protocolo) - Number(b.dataset.protocolo)
+                            : Number(b.dataset.protocolo) - Number(a.dataset.protocolo)));
                 cardsContainer.forEach(card => container.appendChild(card));
             });
         }
@@ -541,7 +578,7 @@ if (d.prazo_limite) {
             input.value = '';
             input.type = event.target.value === 'data' ? 'date' : 'search';
             input.disabled = event.target.value === 'prioridade';
-            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
+            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
             aplicarFiltroBusca();
         });
         // Logout

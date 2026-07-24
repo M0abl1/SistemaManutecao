@@ -16,10 +16,10 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | Campo | Tipo | Obrigatório | Descrição |
 | --- | --- | --- | --- |
 | `protocolo` | number | Sim | Número sequencial da demanda |
-| `tipo_manutencao` | string | Sim | Categoria, incluindo `TI` |
+| `tipo_manutencao` | string | Sim | Categoria da OS: elétrica, hidráulica, patrimônio, limpeza, marcenaria, alvenaria, cobertura, serralheria, montagem de mobiliário/equipamentos, geral, outros ou TI |
 | `unidade_atendida` | string | Sim | Unidade ou setor solicitante |
 | `quem_atendido` | string | Não | Pessoa ou local atendido |
-| `prioridade` | string | Sim | `Baixa`, `Média` ou `Alta` |
+| `prioridade` | string | Sim | `Normal`, `Alta` ou `Crítico` |
 | `descricao` | string | Não | Relato original da solicitação |
 | `status` | string | Sim | `Pendente`, `Em Andamento`, `Concluído` ou `Cancelado` |
 | `prazo_limite` | string ISO 8601 | Sim na tela atual | Data usada como abertura na interface atual |
@@ -31,6 +31,8 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 `tipo_manutencao` identifica a categoria do chamado, mas não limita sua visibilidade: todos os usuários operacionais podem atuar em qualquer categoria.
 
 Todos os perfis podem editar `prioridade`, `tipo_manutencao`, `unidade_atendida`, `observacao_tecnico`, `status` e, quando aplicável, `concluido_em`. Somente o supervisor pode alterar `descricao`. Protocolo, solicitante e data de abertura permanecem protegidos.
+
+Todos os perfis operacionais podem excluir documentos de `demandas`. A operação é definitiva; o número do protocolo permanece consumido no contador para evitar reutilização.
 
 ## `unidades/{id}`
 
@@ -52,3 +54,19 @@ Na ausência do documento, a tela do supervisor inicia a sequência em `1000`.
 ## Compatibilidade de dados
 
 A interface aceita registros antigos sem alguns campos opcionais e exibe valores padrão. Para preservar filtros e permissões, novos documentos devem sempre conter `tipo_manutencao`, `status` e `protocolo` com os tipos descritos acima.
+
+Registros antigos com prioridade `Baixa` ou `Média` são apresentados como `Normal` na edição e migrados para o novo valor ao serem salvos.
+
+## Coleção `emprestimos`
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---:|---|
+| `produto` | string | Sim | Produto emprestado, até 200 caracteres |
+| `emprestado_para` | string | Sim | Pessoa ou setor destinatário, até 200 caracteres |
+| `numero_tombo` | string | Sim | Número patrimonial, até 80 caracteres |
+| `data_emprestimo` | string `YYYY-MM-DD` | Sim | Data do empréstimo |
+| `data_devolucao` | string `YYYY-MM-DD` | Sim | Data prevista de devolução, igual ou posterior ao empréstimo |
+| `criado_por` | map | Sim | UID, nome e cargo do usuário autenticado |
+| `criado_em` | timestamp | Sim | Data de criação definida pelo servidor |
+
+Perfis operacionais podem criar e consultar empréstimos. Alteração e exclusão ficam bloqueadas pelas regras do Firestore.

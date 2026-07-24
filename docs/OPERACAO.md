@@ -18,6 +18,8 @@ O supervisor acessa o painel de gestão e possui visão completa das demandas, i
 3. Para atendimento de tecnologia, escolha **TI**.
 4. Selecione **Abrir Chamado** e anote o protocolo apresentado.
 
+As categorias disponíveis incluem **Cobertura (Telhados)**, **Serralheria**, **Montagem de Mobiliário e Equipamentos**, **Geral** e **Outros**, além das categorias existentes.
+
 O protocolo é sequencial e controlado pelo documento `configuracoes/contador_protocolo` em uma transação do Firestore.
 
 ## Técnico
@@ -26,7 +28,19 @@ O cargo `tecnico` usa o painel colaborativo com sidebar para abrir, visualizar e
 
 Ao abrir um chamado, a unidade deve ser escolhida na lista mantida pelo supervisor. Técnico e TI podem consultar unidades, mas somente o supervisor pode cadastrá-las.
 
+O campo **Pesquisar escola / unidade** permite digitar parte do nome e selecionar uma opção da lista suspensa. O sistema bloqueia a abertura se o texto não corresponder a uma escola cadastrada.
+
 O parecer é obrigatório para concluir ou cancelar uma demanda.
+
+Todos os usuários operacionais podem excluir uma demanda pelo botão **Excluir demanda**. Antes da exclusão, o sistema exibe o número do protocolo e exige confirmação. A exclusão é permanente e não altera nem reutiliza o contador de protocolos.
+
+## Empréstimos
+
+A sidebar dos painéis possui o botão **Empréstimos**. Todos os perfis operacionais podem acessar a página, registrar e consultar empréstimos. Para registrar, informe produto, pessoa ou setor destinatário, número de tombo, data do empréstimo e data de devolução. A devolução deve ser igual ou posterior à data do empréstimo.
+
+## Relatórios mensais
+
+A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Demandas ainda não concluídas permanecem no relatório com os campos de conclusão não informados. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal.
 
 ## TI
 
@@ -37,8 +51,9 @@ O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões oper
 - **Todas as demandas:** remove o filtro de categoria.
 - **Demandas de TI:** mostra somente `tipo_manutencao = TI`.
 - **Manutenção geral:** mostra todas as categorias diferentes de TI.
-- As filas de status mostram pendentes, em andamento, concluídas ou canceladas.
-- Ao selecionar **Prioridade** em **Todas**, a listagem mostra pendentes na ordem **Alta, Média e Baixa**. Em uma aba de status, a aba prevalece e a ordenação é aplicada somente às demandas daquele status.
+- As filas de status mostram pendentes, em andamento ou canceladas; as concluídas são separadas entre **TI** e **manutenção geral**.
+- Na listagem padrão, pendentes e em andamento aparecem primeiro, dos protocolos mais antigos para os mais novos. Concluídas ficam abaixo e canceladas por último.
+- Ao selecionar **Prioridade** em **Todas**, a listagem mostra pendentes na ordem **Crítico, Alta e Normal**. Em uma aba de status, a aba prevalece e a ordenação é aplicada somente às demandas daquele status.
 - As demais buscas aceitam número do protocolo e data de solicitação.
 - **Unidades / Setores** aparece somente no painel do supervisor.
 - O **relato original** também é editável somente pelo supervisor.

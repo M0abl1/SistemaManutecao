@@ -15,8 +15,11 @@
             <button class="menu-item" data-filtro-status="todos" data-filtro-categoria="geral">🛠️ Manutenção geral</button>
             <button class="menu-item" data-filtro-status="Pendente" data-filtro-categoria="todas">⏳ Pendentes</button>
             <button class="menu-item" data-filtro-status="Em Andamento" data-filtro-categoria="todas">⚡ Em andamento</button>
-            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="todas">✅ Concluídas</button>
+            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="ti">✅ Concluídas TI</button>
+            <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="geral">✅ Concluídas manutenção</button>
             <button class="menu-item" data-filtro-status="Cancelado" data-filtro-categoria="todas">❌ Canceladas</button>
+            <button class="menu-item" id="btnEmprestimos">📦 Empréstimos</button>
+            <button class="menu-item" id="btnRelatorios">📊 Relatórios</button>
             <button class="menu-item sair" id="btnSair">🚪 Sair</button>
         </nav>
     </aside>
@@ -41,15 +44,18 @@
                         <select id="tipoManutencao" required>
                             <option>Elétrica</option><option>Hidráulica</option><option>Patrimônio</option>
                             <option>Limpeza</option><option>Marcenaria</option><option>Alvenaria</option>
-                            <option>Geral</option><option>TI</option>
+                            <option>Cobertura (Telhados)</option><option>Serralheria</option>
+                            <option>Montagem de Mobiliário e Equipamentos</option>
+                            <option>Geral</option><option>Outros</option><option>TI</option>
                         </select>
                     </label>
                     <label>Prioridade
-                        <select id="prioridade" required><option>Baixa</option><option selected>Média</option><option>Alta</option></select>
+                        <select id="prioridade" required><option selected>Normal</option><option>Alta</option><option>Crítico</option></select>
                     </label>
                 </div>
-                <label>Instituição / unidade
-                    <select id="unidadeAtendida" required><option value="" disabled selected>Carregando unidades...</option></select>
+                <label>Pesquisar escola / unidade
+                    <input id="unidadeAtendida" list="listaEscolas" required autocomplete="off" placeholder="Digite o nome da escola">
+                    <datalist id="listaEscolas"></datalist>
                 </label>
                 <label>Quem será atendido<input id="quemAtendido" maxlength="200"></label>
                 <label>Descrição<textarea id="descricao" rows="3" maxlength="3000"></textarea></label>
@@ -72,22 +78,25 @@
 
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria', 'Geral', 'TI'];
-        const PRIORIDADES = ['Baixa', 'Média', 'Alta'];
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
+            'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
+        const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
         const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
         const optionsHtml = (opcoes, selecionada) => opcoes.map(opcao =>
             `<option value="${escapeHtml(opcao)}" ${opcao === selecionada ? 'selected' : ''}>${escapeHtml(opcao)}</option>`
         ).join('');
 
         let perfilUsuarioAtual = null;
         let demandas = [];
+        const escolasDisponiveis = new Set();
         let filtroStatus = 'todos';
         let filtroCategoria = 'todas';
 
@@ -145,16 +154,17 @@
         });
 
         function inicializarUnidades() {
-            const select = document.getElementById('unidadeAtendida');
+            const lista = document.getElementById('listaEscolas');
             onSnapshot(query(collection(db, 'unidades')), snapshot => {
                 const nomes = [];
                 snapshot.forEach(item => { if (item.data().nome) nomes.push(item.data().nome); });
                 nomes.sort((a, b) => a.localeCompare(b, 'pt-BR'));
-                select.innerHTML = '<option value="" disabled selected>Selecione a instituição...</option>' +
-                    nomes.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
+                escolasDisponiveis.clear();
+                nomes.forEach(nome => escolasDisponiveis.add(nome));
+                lista.innerHTML = nomes.map(nome => `<option value="${escapeHtml(nome)}"></option>`).join('');
             }, error => {
                 console.error('Erro ao carregar unidades:', error);
-                select.innerHTML = '<option value="" disabled>Falha ao carregar instituições</option>';
+                mostrarErro('Falha ao carregar a lista de escolas.');
             });
         }
 
@@ -189,9 +199,16 @@
             const container = document.getElementById('listaOrdens');
             const filtradas = demandas.filter(demandaAtendeFiltros);
             if (document.getElementById('filtroBusca').value === 'prioridade') {
-                const ordemPrioridade = { 'Alta': 0, 'Média': 1, 'Baixa': 2 };
+                const ordemPrioridade = { 'Crítico': 0, 'Alta': 1, 'Normal': 2, 'Média': 2, 'Baixa': 2 };
                 filtradas.sort((a, b) => (ordemPrioridade[a.prioridade] ?? 3) - (ordemPrioridade[b.prioridade] ?? 3)
                     || Number(b.protocolo || 0) - Number(a.protocolo || 0));
+            } else {
+                const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
+                    : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
+                filtradas.sort((a, b) => grupoStatus(a.status) - grupoStatus(b.status)
+                    || (grupoStatus(a.status) === 0
+                        ? Number(a.protocolo || 0) - Number(b.protocolo || 0)
+                        : Number(b.protocolo || 0) - Number(a.protocolo || 0)));
             }
             if (!filtradas.length) {
                 container.innerHTML = '<div class="estado-lista">Nenhuma demanda encontrada.</div>';
@@ -206,7 +223,7 @@
                 return `<article class="card-demanda" data-id="${escapeHtml(d.idDoc)}">
                     <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
                     <div class="grid-edicao">
-                        <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, d.prioridade)}</select></label>
+                        <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, prioridadeAtual(d.prioridade))}</select></label>
                         <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, d.tipo_manutencao || 'Geral')}</select></label>
                         <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${escapeHtml(d.unidade_atendida)}"></label>
                     </div>
@@ -222,6 +239,7 @@
                         <button class="btn-acao concluido" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Concluído">Concluir</button>
                         <button class="btn-acao cancelado" data-acao="status" data-demanda-id="${escapeHtml(d.idDoc)}" data-novo-status="Cancelado">Cancelar</button>
                     </div>
+                    <button class="btn-excluir" data-acao="excluir" data-demanda-id="${escapeHtml(d.idDoc)}" data-protocolo="${escapeHtml(d.protocolo)}">Excluir demanda</button>
                 </article>`;
             }).join('');
         }
@@ -273,18 +291,36 @@
             }
         }
 
+        async function excluirDemanda(idDoc, protocolo) {
+            const confirmado = confirm(`Excluir permanentemente a demanda #${protocolo}?\n\nEsta ação não pode ser desfeita.`);
+            if (!confirmado) return;
+            try {
+                await deleteDoc(doc(db, 'demandas', idDoc));
+                alert(`Demanda #${protocolo} excluída.`);
+            } catch (error) {
+                console.error('Falha ao excluir demanda:', error);
+                alert(`Falha ao excluir: ${error.code || 'erro-desconhecido'}`);
+            }
+        }
+
         document.addEventListener('click', event => {
             const botao = event.target.closest('[data-acao][data-demanda-id]');
             if (!botao) return;
+            if (botao.dataset.acao === 'excluir') {
+                excluirDemanda(botao.dataset.demandaId, botao.dataset.protocolo);
+                return;
+            }
             salvarEdicao(botao.dataset.demandaId, botao.dataset.acao === 'status' ? botao.dataset.novoStatus : null);
         });
 
         document.getElementById('formDemanda').addEventListener('submit', async event => {
             event.preventDefault();
             if (!perfilUsuarioAtual) return;
+            const escolaSelecionada = document.getElementById('unidadeAtendida').value.trim();
+            if (!escolasDisponiveis.has(escolaSelecionada)) return alert('Selecione uma escola cadastrada na lista.');
             const payload = {
                 tipo_manutencao: document.getElementById('tipoManutencao').value,
-                unidade_atendida: document.getElementById('unidadeAtendida').value,
+                unidade_atendida: escolaSelecionada,
                 quem_atendido: document.getElementById('quemAtendido').value.trim(),
                 prioridade: document.getElementById('prioridade').value,
                 descricao: document.getElementById('descricao').value.trim(),
@@ -314,12 +350,14 @@
             input.value = '';
             input.type = campo === 'data' ? 'date' : 'search';
             input.disabled = campo === 'prioridade';
-            input.placeholder = campo === 'prioridade' ? 'Pendentes: Alta, Média e Baixa' : campo === 'data' ? '' : 'Número do protocolo';
+            input.placeholder = campo === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal' : campo === 'data' ? '' : 'Número do protocolo';
             renderizarDemandas();
         }
         document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);
         document.getElementById('inputBusca').addEventListener('input', renderizarDemandas);
         document.getElementById('limparBusca').addEventListener('click', () => { document.getElementById('inputBusca').value = ''; renderizarDemandas(); });
+        document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
+        document.getElementById('btnRelatorios').addEventListener('click', () => { window.location.href = 'relatorios.html'; });
         document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     </script>
 </body>

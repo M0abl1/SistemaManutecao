@@ -7,13 +7,20 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Login com conta Google.
 - Controle de acesso por perfil: `supervisor`, `tecnico` e `ti`.
 - Cadastro de unidades/setores e abertura de chamados.
+- Categorias adicionais: cobertura/telhados, serralheria, montagem de mobiliário e equipamentos, geral e outros.
+- Pesquisa de escola/unidade em lista suspensa ao abrir um chamado.
 - Numeração sequencial de protocolos.
 - Atualização em tempo real das demandas.
+- Ordenação padrão com pendentes/em andamento mais antigos primeiro e concluídas abaixo.
 - Alteração do status: **Pendente**, **Em Andamento**, **Concluído** e **Cancelado**.
 - Parecer técnico obrigatório ao concluir ou cancelar uma demanda.
 - Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.
 - Edição de prioridade, tipo de OS, instituição e parecer técnico diretamente na demanda; o supervisor também pode corrigir o relato original.
-- Listagem de pendentes por prioridade na ordem Alta, Média e Baixa, além de busca por protocolo e data de solicitação.
+- Exclusão de demandas por usuários operacionais, protegida por confirmação explícita e aviso de ação permanente.
+- Página colaborativa de empréstimos com produto, destinatário, tombo e datas de empréstimo e devolução.
+- Relatórios mensais de TI e manutenção geral, agrupados por unidade e preparados para impressão ou PDF.
+- Prioridades Normal, Alta e Crítico, com listagem de pendentes na ordem Crítico, Alta e Normal.
+- Separação das demandas concluídas entre TI e manutenção geral.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
 
 ## Perfis de acesso
