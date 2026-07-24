@@ -36,27 +36,12 @@ export class LoginController {
 
             // 2. REDIRECIONAMENTO IMEDIATO
             const cargoNormalizado = this.normalizarCargo(perfil?.cargo);
-            if (cargoNormalizado === 'supervisor' || cargoNormalizado === 'tecnico' || cargoNormalizado === 'ti') {
+            if (cargoNormalizado) {
                 this.redirecionarPorCargo(cargoNormalizado);
                 return;
             }
 
-            // 3. FLUXO DE SEGURANÇA (Se ainda houver contas antigas marcadas como 'pendente' no banco)
-            if (cargoNormalizado === 'pendente') {
-                this.view.bloquearBotaoLogin();
-                this.view.exibirMensagemEspera("Sua conta está em análise! Aguardando a supervisão liberar o seu acesso...");
-
-                this.authModel.escutarMudancaCargo(usuarioLogado.uid, (perfilAtualizado) => {
-                    Logger.info('LoginController', 'Atualização de cargo capturada em tempo real', { cargo: perfilAtualizado.cargo });
-                    const novoCargo = this.normalizarCargo(perfilAtualizado.cargo);
-                    if (novoCargo === 'supervisor' || novoCargo === 'tecnico' || novoCargo === 'ti') {
-                        this.redirecionarPorCargo(novoCargo);
-                    }
-                });
-                return;
-            }
-
-            this.view.exibirMensagemErro("Seu perfil possui um cargo inválido. Solicite ao supervisor que use supervisor, tecnico ou ti.");
+            this.view.exibirMensagemErro("Seu perfil não possui um cargo válido.");
 
         } catch (error) {
             Logger.error('LoginController.iniciarFluxoLogin', 'Interrupção no fluxo de login', error);
@@ -76,6 +61,6 @@ export class LoginController {
     redirecionarPorCargo(cargo) {
         Logger.info('LoginController.redirecionarPorCargo', `Redirecionando usuário para tela de ${cargo}`);
         if (cargo === 'supervisor') window.location.href = 'views/supervisor.html';
-        if (cargo === 'tecnico' || cargo === 'ti') window.location.href = 'views/tecnico.html';
+        else window.location.href = 'views/tecnico.html';
     }
 }

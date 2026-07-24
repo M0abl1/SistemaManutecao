@@ -79,7 +79,6 @@
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
-        const CARGOS_PERMITIDOS = new Set(['tecnico', 'ti']);
         const normalizarCargo = (cargo) => String(cargo || '').trim()
             .toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         let cargoUsuario = null;
@@ -111,9 +110,8 @@
                 if (userDoc.exists()) {
                     const dadosPerfil = userDoc.data();
                     
-                    const cargoNormalizado = normalizarCargo(dadosPerfil.cargo);
-                    if (!CARGOS_PERMITIDOS.has(cargoNormalizado)) {
-                        mostrarErroNaTela("Acesso bloqueado: esta tela aceita apenas técnicos e profissionais de TI.");
+                    if (!String(dadosPerfil.cargo || '').trim()) {
+                        mostrarErroNaTela("Acesso bloqueado: o perfil não possui cargo válido.");
                         return;
                     }
                 } else {
