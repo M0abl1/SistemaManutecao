@@ -17,6 +17,10 @@ header{display:flex;align-items:center;gap:14px;margin-bottom:20px}.btn-toggle{d
 header h1{font-size:22px}header p{font-size:13px;color:var(--texto-secundario);margin-top:3px}
 .alerta-erro{padding:16px;background:#fee2e2;color:#991b1b;border:1px solid #ef4444;border-radius:10px;margin-bottom:18px}
 .card-formulario,.barra-busca,.card-demanda,.estado-lista{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:18px}
+.card-demanda.prioridade-normal{background:#fef3c7;border-color:#f59e0b;border-left:6px solid #f59e0b}
+.card-demanda.prioridade-grave{background:#fee2e2;border-color:#ef4444;border-left:6px solid #ef4444}
+.card-demanda.prioridade-critico{background:#fecaca;border-color:#7f1d1d;border-left:6px solid #7f1d1d}
+.card-demanda.demanda-concluida{background:#dcfce7;border-color:#16a34a;border-left:6px solid #16a34a}
 .card-formulario h2{font-size:18px;margin-bottom:14px}.card-formulario form,.card-formulario label,.grid-edicao label,.parecer-label{display:grid;gap:6px}.card-formulario form{gap:13px}
 .grid-formulario,.grid-edicao{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.campo-largo{grid-column:1/-1}
 input,select,textarea{width:100%;padding:10px;border:1px solid var(--borda);border-radius:7px;background:var(--bg-principal);color:var(--texto-principal);font:inherit}
@@ -30,3 +34,9 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--borda);bord
 .estado-lista{text-align:center;color:var(--texto-secundario)}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.aberta{transform:translateX(0)}.sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(15,23,42,.6);opacity:0;visibility:hidden;z-index:90;transition:.2s}.sidebar-backdrop.visivel{opacity:1;visibility:visible}body.menu-mobile-aberto{overflow:hidden}.conteudo-principal{margin-left:0;padding:14px}.btn-toggle{display:block}.barra-busca{grid-template-columns:1fr}.barra-busca button{padding:10px}.acoes-grupo{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.grid-formulario,.grid-edicao{grid-template-columns:1fr}}
+@media(prefers-color-scheme:dark){
+    .card-demanda.prioridade-normal{background:#422006;border-color:#f59e0b}
+    .card-demanda.prioridade-grave{background:#450a0a;border-color:#ef4444}
+    .card-demanda.prioridade-critico{background:#2b0505;border-color:#f87171}
+    .card-demanda.demanda-concluida{background:#052e16;border-color:#22c55e}
+}

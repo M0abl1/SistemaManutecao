@@ -90,6 +90,12 @@
         }[caractere]));
         const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
+        const classeCorDemanda = demanda => {
+            if (demanda.status === 'Concluído') return 'demanda-concluida';
+            if (demanda.prioridade === 'Crítico') return 'prioridade-critico';
+            if (demanda.prioridade === 'Alta' || demanda.prioridade === 'Grave') return 'prioridade-grave';
+            return 'prioridade-normal';
+        };
         const optionsHtml = (opcoes, selecionada) => opcoes.map(opcao =>
             `<option value="${escapeHtml(opcao)}" ${opcao === selecionada ? 'selected' : ''}>${escapeHtml(opcao)}</option>`
         ).join('');
@@ -220,7 +226,7 @@
                     : d.status === 'Em Andamento' ? 'var(--status-andamento)' : 'var(--status-pendente)';
                 const alteradoPor = d.status_alterado_por?.nome
                     ? `${d.status_alterado_por.nome} (${d.status_alterado_por.cargo || 'cargo não informado'})` : 'Não registrado';
-                return `<article class="card-demanda" data-id="${escapeHtml(d.idDoc)}">
+                return `<article class="card-demanda ${classeCorDemanda(d)}" data-id="${escapeHtml(d.idDoc)}">
                     <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
                     <div class="grid-edicao">
                         <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, prioridadeAtual(d.prioridade))}</select></label>

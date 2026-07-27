@@ -54,6 +54,7 @@ O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões oper
 - As filas de status mostram pendentes, em andamento ou canceladas; as concluídas são separadas entre **TI** e **manutenção geral**.
 - Na listagem padrão, pendentes e em andamento aparecem primeiro, dos protocolos mais antigos para os mais novos. Concluídas ficam abaixo e canceladas por último.
 - Ao selecionar **Prioridade** em **Todas**, a listagem mostra pendentes na ordem **Crítico, Alta e Normal**. Em uma aba de status, a aba prevalece e a ordenação é aplicada somente às demandas daquele status.
+- A cor do card identifica a situação: **Normal** em amarelo, **Alta/Grave** em vermelho, **Crítico** em vermelho mais intenso e **Concluído** em verde, independentemente da prioridade.
 - As demais buscas aceitam número do protocolo e data de solicitação.
 - **Unidades / Setores** aparece somente no painel do supervisor.
 - O **relato original** também é editável somente pelo supervisor.
