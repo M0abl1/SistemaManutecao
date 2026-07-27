@@ -57,16 +57,21 @@ A interface aceita registros antigos sem alguns campos opcionais e exibe valores
 
 Registros antigos com prioridade `Baixa` ou `Média` são apresentados como `Normal` na edição e migrados para o novo valor ao serem salvos.
 
-## Coleção `emprestimos`
+## Coleção `emprestimos` — cessões de uso
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---:|---|
 | `produto` | string | Sim | Produto emprestado, até 200 caracteres |
 | `emprestado_para` | string | Sim | Pessoa ou setor destinatário, até 200 caracteres |
 | `numero_tombo` | string | Sim | Número patrimonial, até 80 caracteres |
-| `data_emprestimo` | string `YYYY-MM-DD` | Sim | Data do empréstimo |
-| `data_devolucao` | string `YYYY-MM-DD` | Sim | Data prevista de devolução, igual ou posterior ao empréstimo |
+| `data_emprestimo` | string `YYYY-MM-DD` | Sim | Data da cessão de uso |
+| `data_devolucao` | string `YYYY-MM-DD` | Sim | Data prevista de devolução, igual ou posterior à cessão |
+| `status` | string | Sim | `Em uso` ou `Devolvido` |
+| `devolvido_em` | string `YYYY-MM-DD` | Quando devolvido | Data real da devolução |
+| `estado_devolucao` | string | Quando devolvido | `Bom estado`, `Com avarias` ou `Danificado` |
+| `devolucao_registrada_por` | map | Quando devolvido | UID, nome e cargo de quem confirmou a devolução |
+| `devolucao_registrada_em` | timestamp | Quando devolvido | Momento da confirmação definido pelo servidor |
 | `criado_por` | map | Sim | UID, nome e cargo do usuário autenticado |
 | `criado_em` | timestamp | Sim | Data de criação definida pelo servidor |
 
-Perfis operacionais podem criar e consultar empréstimos. Alteração e exclusão ficam bloqueadas pelas regras do Firestore.
+Perfis operacionais podem criar e consultar cessões. A única atualização permitida é a transição definitiva de `Em uso` para `Devolvido`, com data real, estado do bem e autoria validados. A exclusão permanece bloqueada.

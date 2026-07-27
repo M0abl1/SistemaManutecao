@@ -11,7 +11,8 @@ service cloud.firestore {
     //   prazo_limite ou criado_em e, opcionalmente, concluido_em
     // unidades/{id}: nome, endereco, criado_em e, opcionalmente, id_unidade
     // emprestimos/{id}: produto, emprestado_para, numero_tombo,
-    //   data_emprestimo, data_devolucao, criado_por e criado_em
+    //   data_emprestimo, data_devolucao, status, criado_por e criado_em;
+    //   quando devolvido, inclui devolvido_em e auditoria da devolução
     // configuracoes/{contador}: ultimo_numero
 
     // ===============================================================
@@ -161,11 +162,13 @@ service cloud.firestore {
     function isValidEmprestimo(data) {
       return data.keys().hasAll([
           'produto', 'emprestado_para', 'numero_tombo',
-          'data_emprestimo', 'data_devolucao', 'criado_por', 'criado_em'
+          'data_emprestimo', 'data_devolucao', 'status', 'criado_por', 'criado_em'
         ]) &&
         data.keys().hasOnly([
           'produto', 'emprestado_para', 'numero_tombo',
-          'data_emprestimo', 'data_devolucao', 'criado_por', 'criado_em'
+          'data_emprestimo', 'data_devolucao', 'status', 'criado_por', 'criado_em',
+          'devolvido_em', 'estado_devolucao',
+          'devolucao_registrada_por', 'devolucao_registrada_em'
         ]) &&
         validText(data.produto, 1, 200) &&
         validText(data.emprestado_para, 1, 200) &&
@@ -173,8 +176,20 @@ service cloud.firestore {
         validDateOnly(data.data_emprestimo) &&
         validDateOnly(data.data_devolucao) &&
         data.data_devolucao >= data.data_emprestimo &&
+        data.status in ['Em uso', 'Devolvido'] &&
         validStatusActor(data.criado_por) &&
-        data.criado_em is timestamp;
+        data.criado_em is timestamp &&
+        ((data.status == 'Em uso' &&
+          !('devolvido_em' in data) &&
+          !('estado_devolucao' in data) &&
+          !('devolucao_registrada_por' in data) &&
+          !('devolucao_registrada_em' in data)) ||
+         (data.status == 'Devolvido' &&
+          validDateOnly(data.devolvido_em) &&
+          data.devolvido_em >= data.data_emprestimo &&
+          data.estado_devolucao in ['Bom estado', 'Com avarias', 'Danificado'] &&
+          validStatusActor(data.devolucao_registrada_por) &&
+          data.devolucao_registrada_em is timestamp));
     }
 
     function loanActorMatchesRequester(data) {
@@ -183,6 +198,15 @@ service cloud.firestore {
         data.criado_por.nome == profile().data.nome &&
         data.criado_por.cargo == profile().data.cargo &&
         data.criado_em == request.time;
+    }
+
+    function returnActorMatchesRequester(data) {
+      return data.status == 'Devolvido' &&
+        validStatusActor(data.devolucao_registrada_por) &&
+        data.devolucao_registrada_por.uid == request.auth.uid &&
+        data.devolucao_registrada_por.nome == profile().data.nome &&
+        data.devolucao_registrada_por.cargo == profile().data.cargo &&
+        data.devolucao_registrada_em == request.time;
     }
 
     function isValidCounter(data) {
@@ -279,7 +303,15 @@ service cloud.firestore {
       allow create: if isOperational() &&
         isValidEmprestimo(request.resource.data) &&
         loanActorMatchesRequester(request.resource.data);
-      allow update, delete: if false;
+      allow update: if isOperational() &&
+        isValidEmprestimo(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'devolvido_em', 'estado_devolucao',
+          'devolucao_registrada_por', 'devolucao_registrada_em'
+        ]) &&
+        (!('status' in resource.data) || resource.data.status == 'Em uso') &&
+        returnActorMatchesRequester(request.resource.data);
+      allow delete: if false;
     }
 
     match /configuracoes/{configId} {
