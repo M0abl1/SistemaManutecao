@@ -13,7 +13,7 @@
         .dados-emprestimo div{color:var(--texto-secundario)}
         .dados-emprestimo b{display:block;color:var(--texto-principal);margin-bottom:3px}
         .menu-item.voltar{margin-top:auto;border-top:1px solid rgba(255,255,255,.08)}
-        .devolucao-acao{display:grid;grid-template-columns:minmax(180px,280px) 1fr;gap:12px;align-items:end;margin-top:14px}
+        .devolucao-acao{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto;gap:12px;align-items:end;margin-top:14px}
         @media(prefers-color-scheme:dark){.card-demanda.cessao-em-uso{background:#422006}.card-demanda.cessao-devolvida{background:#052e16}}
         @media(max-width:520px){.dados-emprestimo,.devolucao-acao{grid-template-columns:1fr}}
     </style>
@@ -177,11 +177,15 @@
                     <div><b>Data da cessão</b>${escapeHtml(formatarData(item.data_emprestimo))}</div>
                     <div><b>Devolução prevista</b>${escapeHtml(formatarData(item.data_devolucao))}</div>
                     <div><b>Devolução realizada</b>${escapeHtml(formatarData(item.devolvido_em))}</div>
+                    <div><b>Estado na devolução</b>${escapeHtml(item.estado_devolucao || 'Não informado')}</div>
                     <div><b>Registrado por</b>${escapeHtml(item.criado_por?.nome || 'Não informado')}</div>
                     ${devolvido ? `<div><b>Devolução registrada por</b>${escapeHtml(item.devolucao_registrada_por?.nome || 'Não informado')}</div>` : ''}
                 </div>
                 ${devolvido ? '' : `<div class="devolucao-acao">
                     <label>Data real da devolução<input type="date" data-campo="devolvido_em" min="${escapeHtml(item.data_emprestimo)}" value="${hoje}"></label>
+                    <label>Estado do bem na devolução<select data-campo="estado_devolucao" required>
+                        <option value="">Selecione</option><option>Bom estado</option><option>Com avarias</option><option>Danificado</option>
+                    </select></label>
                     <button class="btn-salvar" type="button" data-acao="devolver" data-cessao-id="${escapeHtml(item.id)}">Registrar devolução</button>
                 </div>`}
             </article>`;
@@ -192,14 +196,17 @@
             if (!perfilAtual) return;
             const card = document.querySelector(`[data-cessao-id="${CSS.escape(idDoc)}"]`);
             const dataReal = card?.querySelector('[data-campo="devolvido_em"]')?.value;
+            const estadoDevolucao = card?.querySelector('[data-campo="estado_devolucao"]')?.value;
             const registro = emprestimos.find(item => item.id === idDoc);
             if (!dataReal || !registro) return alert('Informe a data real da devolução.');
+            if (!estadoDevolucao) return alert('Informe o estado do bem na devolução.');
             if (dataReal < registro.data_emprestimo) return alert('A devolução não pode ser anterior à data da cessão.');
             if (!confirm(`Confirmar a devolução do produto "${registro.produto}" em ${formatarData(dataReal)}?`)) return;
             try {
                 await updateDoc(doc(db, 'emprestimos', idDoc), {
                     status:'Devolvido',
                     devolvido_em:dataReal,
+                    estado_devolucao:estadoDevolucao,
                     devolucao_registrada_por:perfilAtual,
                     devolucao_registrada_em:serverTimestamp()
                 });

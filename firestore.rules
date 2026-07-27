@@ -167,7 +167,8 @@ service cloud.firestore {
         data.keys().hasOnly([
           'produto', 'emprestado_para', 'numero_tombo',
           'data_emprestimo', 'data_devolucao', 'status', 'criado_por', 'criado_em',
-          'devolvido_em', 'devolucao_registrada_por', 'devolucao_registrada_em'
+          'devolvido_em', 'estado_devolucao',
+          'devolucao_registrada_por', 'devolucao_registrada_em'
         ]) &&
         validText(data.produto, 1, 200) &&
         validText(data.emprestado_para, 1, 200) &&
@@ -180,11 +181,13 @@ service cloud.firestore {
         data.criado_em is timestamp &&
         ((data.status == 'Em uso' &&
           !('devolvido_em' in data) &&
+          !('estado_devolucao' in data) &&
           !('devolucao_registrada_por' in data) &&
           !('devolucao_registrada_em' in data)) ||
          (data.status == 'Devolvido' &&
           validDateOnly(data.devolvido_em) &&
           data.devolvido_em >= data.data_emprestimo &&
+          data.estado_devolucao in ['Bom estado', 'Com avarias', 'Danificado'] &&
           validStatusActor(data.devolucao_registrada_por) &&
           data.devolucao_registrada_em is timestamp));
     }
@@ -303,7 +306,7 @@ service cloud.firestore {
       allow update: if isOperational() &&
         isValidEmprestimo(request.resource.data) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status', 'devolvido_em',
+          'status', 'devolvido_em', 'estado_devolucao',
           'devolucao_registrada_por', 'devolucao_registrada_em'
         ]) &&
         (!('status' in resource.data) || resource.data.status == 'Em uso') &&

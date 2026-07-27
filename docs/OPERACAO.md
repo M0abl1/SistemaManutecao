@@ -36,7 +36,7 @@ Todos os usuários operacionais podem excluir uma demanda pelo botão **Excluir 
 
 ## Cessão de uso
 
-A sidebar dos painéis possui o botão **Cessão de uso**. Todos os perfis operacionais podem acessar a página, registrar e consultar cessões. Para registrar, informe produto, pessoa ou setor destinatário, número de tombo, data da cessão e devolução prevista. Enquanto estiver em uso, o card fica amarelo. Ao informar a data real e confirmar a devolução, o status muda definitivamente para **Devolvido**, o card fica verde e passa a mostrar data e responsável pela confirmação.
+A sidebar dos painéis possui o botão **Cessão de uso**. Todos os perfis operacionais podem acessar a página, registrar e consultar cessões. Para registrar, informe produto, pessoa ou setor destinatário, número de tombo, data da cessão e devolução prevista. Enquanto estiver em uso, o card fica amarelo. Ao informar a data real, selecionar o estado do bem — **Bom estado**, **Com avarias** ou **Danificado** — e confirmar a devolução, o status muda definitivamente para **Devolvido**, o card fica verde e passa a mostrar data, estado e responsável pela confirmação.
 
 ## Relatórios mensais
 
