@@ -66,10 +66,14 @@
         <section class="barra-busca">
             <select id="filtroBusca" aria-label="Campo de busca">
                 <option value="protocolo">Protocolo</option>
+                <option value="unidade">Escola / unidade</option>
                 <option value="prioridade">Prioridade</option>
                 <option value="data">Data de solicitação</option>
             </select>
             <input id="inputBusca" type="search" placeholder="Número do protocolo">
+            <select id="selectBuscaUnidade" aria-label="Selecionar escola ou unidade" hidden>
+                <option value="">Todas as escolas</option>
+            </select>
             <button id="limparBusca" type="button">Limpar</button>
         </section>
 
@@ -168,6 +172,8 @@
                 escolasDisponiveis.clear();
                 nomes.forEach(nome => escolasDisponiveis.add(nome));
                 lista.innerHTML = nomes.map(nome => `<option value="${escapeHtml(nome)}"></option>`).join('');
+                document.getElementById('selectBuscaUnidade').innerHTML = '<option value="">Todas as escolas</option>' +
+                    nomes.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
             }, error => {
                 console.error('Erro ao carregar unidades:', error);
                 mostrarErro('Falha ao carregar a lista de escolas.');
@@ -195,9 +201,12 @@
             if (filtroCategoria === 'ti' && !ehTi) return false;
             if (filtroCategoria === 'geral' && ehTi) return false;
             if (campo === 'prioridade') return true;
-            const termo = normalizar(document.getElementById('inputBusca').value);
+            const termo = normalizar(campo === 'unidade'
+                ? document.getElementById('selectBuscaUnidade').value
+                : document.getElementById('inputBusca').value);
             if (!termo) return true;
             if (campo === 'data') return dataSolicitacao(demanda).includes(termo);
+            if (campo === 'unidade') return normalizar(demanda.unidade_atendida).includes(termo);
             return String(demanda.protocolo || '').includes(termo.replace('#', ''));
         }
 
@@ -353,15 +362,25 @@
         function configurarCampoBusca() {
             const campo = document.getElementById('filtroBusca').value;
             const input = document.getElementById('inputBusca');
+            const selectUnidade = document.getElementById('selectBuscaUnidade');
             input.value = '';
+            selectUnidade.value = '';
             input.type = campo === 'data' ? 'date' : 'search';
             input.disabled = campo === 'prioridade';
-            input.placeholder = campo === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal' : campo === 'data' ? '' : 'Número do protocolo';
+            input.hidden = campo === 'unidade';
+            selectUnidade.hidden = campo !== 'unidade';
+            input.placeholder = campo === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal'
+                : campo === 'data' ? '' : campo === 'unidade' ? 'Nome da escola ou unidade' : 'Número do protocolo';
             renderizarDemandas();
         }
         document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);
         document.getElementById('inputBusca').addEventListener('input', renderizarDemandas);
-        document.getElementById('limparBusca').addEventListener('click', () => { document.getElementById('inputBusca').value = ''; renderizarDemandas(); });
+        document.getElementById('selectBuscaUnidade').addEventListener('change', renderizarDemandas);
+        document.getElementById('limparBusca').addEventListener('click', () => {
+            document.getElementById('inputBusca').value = '';
+            document.getElementById('selectBuscaUnidade').value = '';
+            renderizarDemandas();
+        });
         document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
         document.getElementById('btnRelatorios').addEventListener('click', () => { window.location.href = 'relatorios.html'; });
         document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));

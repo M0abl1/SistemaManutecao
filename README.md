@@ -16,6 +16,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Parecer técnico obrigatório ao concluir ou cancelar uma demanda.
 - Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.
 - Edição de prioridade, tipo de OS, instituição e parecer técnico diretamente na demanda; o supervisor também pode corrigir o relato original.
+- Busca de demandas por protocolo, escola/unidade em lista suspensa, prioridade ou data de solicitação.
 - Exclusão de demandas por usuários operacionais, protegida por confirmação explícita e aviso de ação permanente.
 - Página colaborativa de cessão de uso com produto, destinatário, tombo, datas prevista e real, status e estado do bem na devolução.
 - Relatórios mensais de TI e manutenção geral, agrupados por unidade e preparados para impressão ou PDF.

@@ -83,10 +83,14 @@
                 <select id="filtroBusca" aria-label="Filtrar busca por" style="border:none; border-right: 1px solid var(--borda); border-radius: 0; background:transparent; width:auto; padding-right:10px; color: var(--texto-principal);">
                     <option value="todos">Todos os campos</option>
                     <option value="protocolo">Nº do protocolo</option>
+                    <option value="unidade">Escola / unidade</option>
                     <option value="prioridade">Prioridade</option>
                     <option value="data">Data de solicitação</option>
                 </select>
                 <input type="search" id="inputBusca" placeholder="Digite para filtrar a listagem..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
+                <select id="selectBuscaUnidade" aria-label="Selecionar escola ou unidade" hidden style="border:none; background:transparent; width:100%; color:var(--texto-principal);">
+                    <option value="">Todas as escolas</option>
+                </select>
             </div>
         </div>
 
@@ -227,6 +231,7 @@
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
+        const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
         async function negarAcesso(mensagem) {
             alert(mensagem);
@@ -330,6 +335,8 @@
 
                 if (container) container.innerHTML = htmlTabela || '<tr><td colspan="2" style="text-align:center;">Nenhuma unidade cadastrada.</td></tr>';
                 lista.innerHTML = unidades.map(item => `<option value="${escapeHtml(item.nome)}"></option>`).join('');
+                document.getElementById('selectBuscaUnidade').innerHTML = '<option value="">Todas as escolas</option>' +
+                    unidades.map(item => `<option value="${escapeHtml(item.nome)}">${escapeHtml(item.nome)}</option>`).join('');
             });
         }
 
@@ -436,7 +443,7 @@ if (d.prazo_limite) {
             alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
 
             return `
-                <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
+                <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-unidade="${d.unidade_atendida || ''}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
                         <span class="badge" style="background: ${corStatus}">${d.status}</span>
@@ -558,8 +565,10 @@ if (d.prazo_limite) {
         });
         // 🟢 BARRA DE PESQUISA EM TEMPO REAL
         function aplicarFiltroBusca() {
-            const termoBusca = document.getElementById('inputBusca').value.toLowerCase().trim();
             const filtro = document.getElementById('filtroBusca').value;
+            const termoBusca = normalizar(filtro === 'unidade'
+                ? document.getElementById('selectBuscaUnidade').value
+                : document.getElementById('inputBusca').value);
             const cards = document.querySelectorAll('.card-demanda');
             const modoPrioridade = filtro === 'prioridade';
             const statusPrioridade = supervisorFiltroStatus !== 'todos' ? supervisorFiltroStatus : 'Pendente';
@@ -568,8 +577,9 @@ if (d.prazo_limite) {
                 const categoriaValida = supervisorFiltroCategoria === 'todas' || card.dataset.categoria === supervisorFiltroCategoria;
                 const campo = filtro === 'protocolo' ? card.dataset.protocolo
                     : filtro === 'data' ? card.dataset.data
+                    : filtro === 'unidade' ? card.dataset.unidade
                     : card.innerText;
-                const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : campo.toLowerCase().includes(termoBusca);
+                const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : normalizar(campo).includes(termoBusca);
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
             });
 
@@ -589,12 +599,18 @@ if (d.prazo_limite) {
             });
         }
         document.getElementById('inputBusca').addEventListener('input', aplicarFiltroBusca);
+        document.getElementById('selectBuscaUnidade').addEventListener('change', aplicarFiltroBusca);
         document.getElementById('filtroBusca').addEventListener('change', (event) => {
             const input = document.getElementById('inputBusca');
+            const selectUnidade = document.getElementById('selectBuscaUnidade');
             input.value = '';
+            selectUnidade.value = '';
             input.type = event.target.value === 'data' ? 'date' : 'search';
             input.disabled = event.target.value === 'prioridade';
-            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal' : event.target.value === 'data' ? '' : 'Digite para filtrar a listagem...';
+            input.hidden = event.target.value === 'unidade';
+            selectUnidade.hidden = event.target.value !== 'unidade';
+            input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal'
+                : event.target.value === 'data' ? '' : event.target.value === 'unidade' ? 'Nome da escola ou unidade' : 'Digite para filtrar a listagem...';
             aplicarFiltroBusca();
         });
         // Logout
