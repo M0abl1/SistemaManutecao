@@ -71,9 +71,8 @@
                 <option value="data">Data de solicitação</option>
             </select>
             <input id="inputBusca" type="search" placeholder="Número do protocolo">
-            <select id="selectBuscaUnidade" aria-label="Selecionar escola ou unidade" hidden>
-                <option value="">Todas as escolas</option>
-            </select>
+            <input id="inputBuscaUnidade" list="listaBuscaUnidades" type="search" autocomplete="off" placeholder="Digite o nome da escola" aria-label="Pesquisar escola ou unidade" hidden>
+            <datalist id="listaBuscaUnidades"></datalist>
             <button id="limparBusca" type="button">Limpar</button>
         </section>
 
@@ -172,8 +171,8 @@
                 escolasDisponiveis.clear();
                 nomes.forEach(nome => escolasDisponiveis.add(nome));
                 lista.innerHTML = nomes.map(nome => `<option value="${escapeHtml(nome)}"></option>`).join('');
-                document.getElementById('selectBuscaUnidade').innerHTML = '<option value="">Todas as escolas</option>' +
-                    nomes.map(nome => `<option value="${escapeHtml(nome)}">${escapeHtml(nome)}</option>`).join('');
+                document.getElementById('listaBuscaUnidades').innerHTML =
+                    nomes.map(nome => `<option value="${escapeHtml(nome)}"></option>`).join('');
             }, error => {
                 console.error('Erro ao carregar unidades:', error);
                 mostrarErro('Falha ao carregar a lista de escolas.');
@@ -202,7 +201,7 @@
             if (filtroCategoria === 'geral' && ehTi) return false;
             if (campo === 'prioridade') return true;
             const termo = normalizar(campo === 'unidade'
-                ? document.getElementById('selectBuscaUnidade').value
+                ? document.getElementById('inputBuscaUnidade').value
                 : document.getElementById('inputBusca').value);
             if (!termo) return true;
             if (campo === 'data') return dataSolicitacao(demanda).includes(termo);
@@ -362,23 +361,23 @@
         function configurarCampoBusca() {
             const campo = document.getElementById('filtroBusca').value;
             const input = document.getElementById('inputBusca');
-            const selectUnidade = document.getElementById('selectBuscaUnidade');
+            const inputUnidade = document.getElementById('inputBuscaUnidade');
             input.value = '';
-            selectUnidade.value = '';
+            inputUnidade.value = '';
             input.type = campo === 'data' ? 'date' : 'search';
             input.disabled = campo === 'prioridade';
             input.hidden = campo === 'unidade';
-            selectUnidade.hidden = campo !== 'unidade';
+            inputUnidade.hidden = campo !== 'unidade';
             input.placeholder = campo === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal'
                 : campo === 'data' ? '' : campo === 'unidade' ? 'Nome da escola ou unidade' : 'Número do protocolo';
             renderizarDemandas();
         }
         document.getElementById('filtroBusca').addEventListener('change', configurarCampoBusca);
         document.getElementById('inputBusca').addEventListener('input', renderizarDemandas);
-        document.getElementById('selectBuscaUnidade').addEventListener('change', renderizarDemandas);
+        document.getElementById('inputBuscaUnidade').addEventListener('input', renderizarDemandas);
         document.getElementById('limparBusca').addEventListener('click', () => {
             document.getElementById('inputBusca').value = '';
-            document.getElementById('selectBuscaUnidade').value = '';
+            document.getElementById('inputBuscaUnidade').value = '';
             renderizarDemandas();
         });
         document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });

@@ -88,9 +88,8 @@
                     <option value="data">Data de solicitação</option>
                 </select>
                 <input type="search" id="inputBusca" placeholder="Digite para filtrar a listagem..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
-                <select id="selectBuscaUnidade" aria-label="Selecionar escola ou unidade" hidden style="border:none; background:transparent; width:100%; color:var(--texto-principal);">
-                    <option value="">Todas as escolas</option>
-                </select>
+                <input id="inputBuscaUnidade" list="listaBuscaUnidades" type="search" autocomplete="off" placeholder="Digite o nome da escola" aria-label="Pesquisar escola ou unidade" hidden style="width:100%; background:var(--bg-card, #fff); color:var(--texto-principal); border:1px solid var(--borda);">
+                <datalist id="listaBuscaUnidades"></datalist>
             </div>
         </div>
 
@@ -335,8 +334,8 @@
 
                 if (container) container.innerHTML = htmlTabela || '<tr><td colspan="2" style="text-align:center;">Nenhuma unidade cadastrada.</td></tr>';
                 lista.innerHTML = unidades.map(item => `<option value="${escapeHtml(item.nome)}"></option>`).join('');
-                document.getElementById('selectBuscaUnidade').innerHTML = '<option value="">Todas as escolas</option>' +
-                    unidades.map(item => `<option value="${escapeHtml(item.nome)}">${escapeHtml(item.nome)}</option>`).join('');
+                document.getElementById('listaBuscaUnidades').innerHTML =
+                    unidades.map(item => `<option value="${escapeHtml(item.nome)}"></option>`).join('');
             });
         }
 
@@ -567,7 +566,7 @@ if (d.prazo_limite) {
         function aplicarFiltroBusca() {
             const filtro = document.getElementById('filtroBusca').value;
             const termoBusca = normalizar(filtro === 'unidade'
-                ? document.getElementById('selectBuscaUnidade').value
+                ? document.getElementById('inputBuscaUnidade').value
                 : document.getElementById('inputBusca').value);
             const cards = document.querySelectorAll('.card-demanda');
             const modoPrioridade = filtro === 'prioridade';
@@ -599,16 +598,16 @@ if (d.prazo_limite) {
             });
         }
         document.getElementById('inputBusca').addEventListener('input', aplicarFiltroBusca);
-        document.getElementById('selectBuscaUnidade').addEventListener('change', aplicarFiltroBusca);
+        document.getElementById('inputBuscaUnidade').addEventListener('input', aplicarFiltroBusca);
         document.getElementById('filtroBusca').addEventListener('change', (event) => {
             const input = document.getElementById('inputBusca');
-            const selectUnidade = document.getElementById('selectBuscaUnidade');
+            const inputUnidade = document.getElementById('inputBuscaUnidade');
             input.value = '';
-            selectUnidade.value = '';
+            inputUnidade.value = '';
             input.type = event.target.value === 'data' ? 'date' : 'search';
             input.disabled = event.target.value === 'prioridade';
             input.hidden = event.target.value === 'unidade';
-            selectUnidade.hidden = event.target.value !== 'unidade';
+            inputUnidade.hidden = event.target.value !== 'unidade';
             input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal'
                 : event.target.value === 'data' ? '' : event.target.value === 'unidade' ? 'Nome da escola ou unidade' : 'Digite para filtrar a listagem...';
             aplicarFiltroBusca();
