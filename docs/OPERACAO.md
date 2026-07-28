@@ -9,6 +9,7 @@ O supervisor acessa o painel de gestão e possui visão completa das demandas, i
 - consultar demandas de todos os status e categorias;
 - filtrar pela sidebar as demandas de TI ou de manutenção geral;
 - pesquisar por prioridade, protocolo, escola/unidade em lista suspensa pesquisável ou data de solicitação;
+- os seletores de filtro acompanham as cores dos temas claro e escuro;
 - editar prioridade, tipo de OS, instituição, relato original, parecer técnico e status.
 
 ### Abrir uma demanda

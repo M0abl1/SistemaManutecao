@@ -35,6 +35,16 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
 
+#filtroBusca,
+#filtroBusca option {
+    background-color: var(--bg-card) !important;
+    color: var(--texto-principal) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    #filtroBusca { color-scheme: dark; }
+}
+
 body {
     background-color: var(--bg-principal);
     color: var(--texto-principal);

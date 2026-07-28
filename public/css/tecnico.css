@@ -24,6 +24,7 @@ header h1{font-size:22px}header p{font-size:13px;color:var(--texto-secundario);m
 .card-formulario h2{font-size:18px;margin-bottom:14px}.card-formulario form,.card-formulario label,.grid-edicao label,.parecer-label{display:grid;gap:6px}.card-formulario form{gap:13px}
 .grid-formulario,.grid-edicao{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.campo-largo{grid-column:1/-1}
 input,select,textarea{width:100%;padding:10px;border:1px solid var(--borda);border-radius:7px;background:var(--bg-principal);color:var(--texto-principal);font:inherit}
+#filtroBusca,#filtroBusca option{background-color:var(--bg-card)!important;color:var(--texto-principal)!important}
 .btn-criar,.btn-salvar{border:0;border-radius:7px;padding:11px 15px;background:var(--primaria);color:#fff;font-weight:700;cursor:pointer}
 .barra-busca{display:grid;grid-template-columns:200px 1fr auto;gap:10px;padding:12px}.barra-busca button{border:1px solid var(--borda);background:var(--bg-principal);color:var(--texto-principal);border-radius:7px;padding:0 14px;cursor:pointer}
 .header-demanda{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--borda);padding-bottom:10px;margin-bottom:12px}.protocolo{font-size:20px;font-weight:800;color:var(--primaria)}
@@ -35,6 +36,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--borda);bord
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.aberta{transform:translateX(0)}.sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(15,23,42,.6);opacity:0;visibility:hidden;z-index:90;transition:.2s}.sidebar-backdrop.visivel{opacity:1;visibility:visible}body.menu-mobile-aberto{overflow:hidden}.conteudo-principal{margin-left:0;padding:14px}.btn-toggle{display:block}.barra-busca{grid-template-columns:1fr}.barra-busca button{padding:10px}.acoes-grupo{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.grid-formulario,.grid-edicao{grid-template-columns:1fr}}
 @media(prefers-color-scheme:dark){
+    #filtroBusca{color-scheme:dark}
     .card-demanda.prioridade-normal{background:#422006;border-color:#f59e0b}
     .card-demanda.prioridade-grave{background:#450a0a;border-color:#ef4444}
     .card-demanda.prioridade-critico{background:#2b0505;border-color:#f87171}
