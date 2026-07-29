@@ -84,12 +84,14 @@
                     <option value="todos">Todos os campos</option>
                     <option value="protocolo">Nº do protocolo</option>
                     <option value="unidade">Escola / unidade</option>
+                    <option value="tipo_manutencao">Tipo de manutenção</option>
                     <option value="prioridade">Prioridade</option>
                     <option value="data">Data de solicitação</option>
                 </select>
                 <input type="search" id="inputBusca" placeholder="Digite para filtrar a listagem..." style="border:none; background:transparent; width:100%; outline:none; color: var(--texto-principal);">
                 <input id="inputBuscaUnidade" list="listaBuscaUnidades" type="search" autocomplete="off" placeholder="Digite o nome da escola" aria-label="Pesquisar escola ou unidade" hidden style="width:100%; background:var(--bg-card, #fff); color:var(--texto-principal); border:1px solid var(--borda);">
                 <datalist id="listaBuscaUnidades"></datalist>
+                <datalist id="listaBuscaTipos"></datalist>
             </div>
         </div>
 
@@ -232,6 +234,9 @@
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
         }[caractere]));
         const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        document.getElementById('listaBuscaTipos').innerHTML = TIPOS_OS.map(tipo =>
+            `<option value="${escapeHtml(tipo)}"></option>`
+        ).join('');
 
         async function negarAcesso(mensagem) {
             alert(mensagem);
@@ -444,7 +449,7 @@ if (d.prazo_limite) {
             alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
 
             return `
-                <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-unidade="${d.unidade_atendida || ''}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
+                <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-unidade="${d.unidade_atendida || ''}" data-tipo-manutencao="${escapeHtml(tipoSelecionado)}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
                         <span class="badge" style="background: ${corStatus}">${d.status}</span>
@@ -579,6 +584,7 @@ if (d.prazo_limite) {
                 const campo = filtro === 'protocolo' ? card.dataset.protocolo
                     : filtro === 'data' ? card.dataset.data
                     : filtro === 'unidade' ? card.dataset.unidade
+                    : filtro === 'tipo_manutencao' ? card.dataset.tipoManutencao
                     : card.innerText;
                 const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : normalizar(campo).includes(termoBusca);
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
@@ -607,11 +613,13 @@ if (d.prazo_limite) {
             input.value = '';
             inputUnidade.value = '';
             input.type = event.target.value === 'data' ? 'date' : 'search';
+            input.setAttribute('list', event.target.value === 'tipo_manutencao' ? 'listaBuscaTipos' : '');
             input.disabled = event.target.value === 'prioridade';
             input.hidden = event.target.value === 'unidade';
             inputUnidade.hidden = event.target.value !== 'unidade';
             input.placeholder = event.target.value === 'prioridade' ? 'Pendentes: Crítico, Alta e Normal'
-                : event.target.value === 'data' ? '' : event.target.value === 'unidade' ? 'Nome da escola ou unidade' : 'Digite para filtrar a listagem...';
+                : event.target.value === 'data' ? '' : event.target.value === 'unidade' ? 'Nome da escola ou unidade'
+                    : event.target.value === 'tipo_manutencao' ? 'Digite ou selecione o tipo de manutenção' : 'Digite para filtrar a listagem...';
             aplicarFiltroBusca();
         });
         // Logout
