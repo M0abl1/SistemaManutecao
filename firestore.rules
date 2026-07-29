@@ -134,7 +134,7 @@ service cloud.firestore {
         ('prazo_limite' in data || 'criado_em' in data) &&
         data.protocolo is int && data.protocolo >= 1000 && data.protocolo <= 999999999 &&
         data.tipo_manutencao in [
-          'Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza',
+          'Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', 'Limpeza',
           'Marcenaria', 'Alvenaria', 'Cobertura (Telhados)', 'Serralheria',
           'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'
         ] &&

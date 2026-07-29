@@ -16,7 +16,7 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | Campo | Tipo | Obrigatório | Descrição |
 | --- | --- | --- | --- |
 | `protocolo` | number | Sim | Número sequencial da demanda |
-| `tipo_manutencao` | string | Sim | Categoria da OS: elétrica, hidráulica, patrimônio, limpeza, marcenaria, alvenaria, cobertura, serralheria, montagem de mobiliário/equipamentos, geral, outros ou TI |
+| `tipo_manutencao` | string | Sim | Categoria da OS: elétrica, hidráulica, patrimônio, capina, marcenaria, alvenaria, cobertura, serralheria, montagem de mobiliário/equipamentos, geral, outros ou TI |
 | `unidade_atendida` | string | Sim | Unidade ou setor solicitante |
 | `quem_atendido` | string | Não | Pessoa ou local atendido |
 | `prioridade` | string | Sim | `Normal`, `Alta` ou `Crítico` |
@@ -56,6 +56,8 @@ Na ausência do documento, a tela do supervisor inicia a sequência em `1000`.
 A interface aceita registros antigos sem alguns campos opcionais e exibe valores padrão. Para preservar filtros e permissões, novos documentos devem sempre conter `tipo_manutencao`, `status` e `protocolo` com os tipos descritos acima.
 
 Registros antigos com prioridade `Baixa` ou `Média` são apresentados como `Normal` na edição e migrados para o novo valor ao serem salvos.
+
+Registros antigos com categoria `Limpeza` são apresentados como `Capina` e migrados ao serem salvos.
 
 ## Coleção `emprestimos` — cessões de uso
 

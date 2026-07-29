@@ -213,10 +213,11 @@
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', 'Marcenaria', 'Alvenaria',
             'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
         const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
         const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
+        const tipoOsAtual = (valor) => valor === 'Limpeza' ? 'Capina' : valor || 'Geral';
         const classeCorDemanda = demanda => {
             if (demanda.status === 'Concluído') return 'demanda-concluida';
             if (demanda.prioridade === 'Crítico') return 'prioridade-critico';
@@ -429,7 +430,8 @@ if (d.prazo_limite) {
     }
 }
 
-            const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === d.tipo_manutencao ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
+            const tipoSelecionado = tipoOsAtual(d.tipo_manutencao);
+            const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === tipoSelecionado ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
             const prioridadeSelecionada = prioridadeAtual(d.prioridade);
             const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === prioridadeSelecionada ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
             const dataSolicitacao = (() => {

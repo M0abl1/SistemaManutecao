@@ -85,7 +85,7 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Limpeza', 'Marcenaria', 'Alvenaria',
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', 'Marcenaria', 'Alvenaria',
             'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
         const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
@@ -93,6 +93,7 @@
         }[caractere]));
         const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
+        const tipoOsAtual = (valor) => valor === 'Limpeza' ? 'Capina' : valor || 'Geral';
         const classeCorDemanda = demanda => {
             if (demanda.status === 'Concluído') return 'demanda-concluida';
             if (demanda.prioridade === 'Crítico') return 'prioridade-critico';
@@ -238,7 +239,7 @@
                     <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
                     <div class="grid-edicao">
                         <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, prioridadeAtual(d.prioridade))}</select></label>
-                        <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, d.tipo_manutencao || 'Geral')}</select></label>
+                        <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, tipoOsAtual(d.tipo_manutencao))}</select></label>
                         <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${escapeHtml(d.unidade_atendida)}"></label>
                     </div>
                     <div class="detalhe"><b>Solicitado em:</b> ${escapeHtml(formatarData(d))}</div>
