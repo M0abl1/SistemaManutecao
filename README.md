@@ -23,6 +23,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Prioridades Normal, Alta e Crítico, com listagem de pendentes na ordem Crítico, Alta e Normal.
 - Cards coloridos por prioridade: Normal em amarelo, Alta/Grave em vermelho, Crítico em vermelho intenso e concluídos em verde.
 - Categoria `Capina` no lugar de `Limpeza`, mantendo compatibilidade com registros antigos.
+- Categoria `Limpeza de Caixa d'água` disponível na abertura, edição e pesquisa de chamados.
 - Separação das demandas concluídas entre TI e manutenção geral.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
 

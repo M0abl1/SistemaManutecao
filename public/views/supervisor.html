@@ -109,6 +109,7 @@
                                 <option value="Hidráulica">Hidráulica</option>
                                 <option value="Patrimônio">Patrimônio</option>
                                 <option value="Capina">Capina</option>
+                                <option value="Limpeza de Caixa d'água">Limpeza de Caixa d'água</option>
                                 <option value="Marcenaria">Marcenaria</option>
                                 <option value="Alvenaria">Alvenaria</option>
                                 <option value="Cobertura (Telhados)">Cobertura (Telhados)</option>
@@ -215,7 +216,7 @@
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', 'Marcenaria', 'Alvenaria',
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
             'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
         const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
         const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';

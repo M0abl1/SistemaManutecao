@@ -43,7 +43,7 @@
                     <label>Tipo de OS
                         <select id="tipoManutencao" required>
                             <option>Elétrica</option><option>Hidráulica</option><option>Patrimônio</option>
-                            <option>Capina</option><option>Marcenaria</option><option>Alvenaria</option>
+                            <option>Capina</option><option>Limpeza de Caixa d'água</option><option>Marcenaria</option><option>Alvenaria</option>
                             <option>Cobertura (Telhados)</option><option>Serralheria</option>
                             <option>Montagem de Mobiliário e Equipamentos</option>
                             <option>Geral</option><option>Outros</option><option>TI</option>
@@ -87,7 +87,7 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', 'Marcenaria', 'Alvenaria',
+        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
             'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
         const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({

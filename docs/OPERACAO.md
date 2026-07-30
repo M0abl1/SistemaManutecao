@@ -19,7 +19,7 @@ O supervisor acessa o painel de gestão e possui visão completa das demandas, i
 3. Para atendimento de tecnologia, escolha **TI**.
 4. Selecione **Abrir Chamado** e anote o protocolo apresentado.
 
-As categorias disponíveis incluem **Cobertura (Telhados)**, **Serralheria**, **Montagem de Mobiliário e Equipamentos**, **Geral** e **Outros**, além das categorias existentes.
+As categorias disponíveis incluem **Limpeza de Caixa d'água**, **Cobertura (Telhados)**, **Serralheria**, **Montagem de Mobiliário e Equipamentos**, **Geral** e **Outros**, além das categorias existentes.
 
 O protocolo é sequencial e controlado pelo documento `configuracoes/contador_protocolo` em uma transação do Firestore.
 
