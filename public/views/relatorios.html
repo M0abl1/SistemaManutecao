@@ -11,6 +11,9 @@
         .filtros-relatorio label{display:grid;gap:6px}
         .btn-imprimir{border:1px solid var(--primaria);border-radius:7px;padding:11px 15px;background:transparent;color:var(--primaria);font-weight:700;cursor:pointer}
         .cabecalho-relatorio,.unidade-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:16px}
+        .identidade-institucional{text-align:center;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--borda)}
+        .identidade-institucional img{display:block;width:min(100%,760px);height:auto;margin:0 auto 16px}
+        .identidade-institucional p{margin:0;font-weight:800;line-height:1.45;letter-spacing:.03em;color:var(--texto-principal)}
         .cabecalho-relatorio h2{margin-bottom:8px}.resumo-relatorio{display:flex;gap:18px;flex-wrap:wrap;color:var(--texto-secundario)}
         .unidade-relatorio h3{margin-bottom:12px;color:var(--primaria)}
         .tabela-container{overflow-x:auto}.tabela-relatorio{width:100%;border-collapse:collapse;min-width:950px}
@@ -28,6 +31,7 @@
             @page{size:A4 landscape;margin:10mm}
             body{background:#fff;color:#111;font-size:10pt}.sidebar,.sidebar-backdrop,header,.filtros-relatorio,.alerta-erro{display:none!important}
             .conteudo-principal{margin:0;padding:0;max-width:none}.cabecalho-relatorio,.unidade-relatorio{border:0;padding:0;margin-bottom:14px;box-shadow:none;break-inside:avoid}
+            .identidade-institucional{border-bottom:1px solid #111;margin-bottom:14px;padding-bottom:12px}.identidade-institucional img{width:620px;max-width:100%;margin-bottom:10px}.identidade-institucional p{color:#111;font-size:10pt}
             .unidade-relatorio{break-inside:auto}.unidade-relatorio h3{color:#111;border-bottom:2px solid #111;padding-bottom:5px}
             .tabela-container{overflow:visible}.tabela-relatorio{min-width:0}.tabela-relatorio th,.tabela-relatorio td{border:1px solid #aaa;padding:5px;color:#111;background:#fff;font-size:8.5pt}
             .tabela-relatorio tr{break-inside:avoid}.estado-lista{border:0}
@@ -102,6 +106,13 @@
                 <div class="campo-assinatura"><span class="linha-assinatura"></span><strong>Técnico responsável</strong><span>Nome e assinatura</span></div>
                 <div class="campo-assinatura"><span class="linha-assinatura"></span><strong>Ateste de execução do serviço</strong><span>Nome, cargo e assinatura</span></div>
             </footer>`;
+        }
+
+        function htmlIdentidadeInstitucional() {
+            return `<div class="identidade-institucional">
+                <img src="../assets/cabecalho-educacao-santo-estevao.png" alt="Prefeitura Municipal de Santo Estêvão e Secretaria de Educação">
+                <p>PREFEITURA MUNICIPAL DE SANTO ESTÊVÃO<br>SECRETARIA MUNICIPAL DE EDUCAÇÃO<br>COORDENAÇÃO DE PATRIMÔNIO E MANUTENÇÃO</p>
+            </div>`;
         }
 
         function mostrarErro(mensagem) {
@@ -211,7 +222,7 @@
             const categoria = document.getElementById('categoriaRelatorio').value === 'ti' ? 'TI' : 'Manutenção geral';
             const mes = document.getElementById('mesReferencia').value;
             const concluidas = itens.filter(item => item.status === 'Concluído').length;
-            const cabecalho = `<div class="cabecalho-relatorio">
+            const cabecalho = `<div class="cabecalho-relatorio">${htmlIdentidadeInstitucional()}
                 <h2>Relatório de ${escapeHtml(categoria)} — ${escapeHtml(nomeMes(mes))}</h2>
                 <div class="resumo-relatorio">
                     <span><b>Unidade:</b> ${escapeHtml(unidadeSelecionada === 'todas' ? 'Todas as unidades' : unidadeSelecionada)}</span>
@@ -248,7 +259,7 @@
                 return;
             }
             document.querySelectorAll('.filtros-relatorio label, .filtros-relatorio .btn-criar').forEach(elemento => { elemento.hidden = true; });
-            const cabecalho = `<div class="cabecalho-relatorio"><h2>Relatório individual da demanda #${escapeHtml(item.protocolo || '—')}</h2>
+            const cabecalho = `<div class="cabecalho-relatorio">${htmlIdentidadeInstitucional()}<h2>Relatório individual da demanda #${escapeHtml(item.protocolo || '—')}</h2>
                 <div class="resumo-relatorio"><span><b>Unidade:</b> ${escapeHtml(item.unidade_atendida || 'Não informada')}</span><span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span></div></div>`;
             const conteudo = `<section class="unidade-relatorio"><div class="tabela-container"><table class="tabela-relatorio">
                 <thead><tr><th>Protocolo</th><th>Demanda solicitada</th><th>Data da solicitação</th><th>Data da conclusão</th><th>Status</th><th>Parecer técnico</th></tr></thead>
