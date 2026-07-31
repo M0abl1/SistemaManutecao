@@ -17,9 +17,13 @@
         .tabela-relatorio th,.tabela-relatorio td{padding:10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--borda)}
         .tabela-relatorio th{background:var(--bg-principal);font-size:13px}.tabela-relatorio td{font-size:14px}
         .parecer{white-space:pre-wrap;min-width:230px}.solicitacao{white-space:pre-wrap;min-width:260px}
+        .assinaturas-relatorio{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:70px;margin:70px 20px 20px;padding-top:10px}
+        .campo-assinatura{text-align:center;color:var(--texto-principal)}
+        .linha-assinatura{display:block;border-top:1px solid currentColor;margin-bottom:8px}
+        .campo-assinatura strong{display:block}.campo-assinatura span{font-size:13px;color:var(--texto-secundario)}
         .menu-item.voltar{margin-top:auto;border-top:1px solid rgba(255,255,255,.08)}
         @media(max-width:900px){.filtros-relatorio form{grid-template-columns:1fr 1fr}.filtros-relatorio form label:first-child{grid-column:1/-1}}
-        @media(max-width:520px){.filtros-relatorio form{grid-template-columns:1fr}.filtros-relatorio form label:first-child{grid-column:auto}}
+        @media(max-width:520px){.filtros-relatorio form,.assinaturas-relatorio{grid-template-columns:1fr}.filtros-relatorio form label:first-child{grid-column:auto}.assinaturas-relatorio{gap:55px}}
         @media print{
             @page{size:A4 landscape;margin:10mm}
             body{background:#fff;color:#111;font-size:10pt}.sidebar,.sidebar-backdrop,header,.filtros-relatorio,.alerta-erro{display:none!important}
@@ -27,6 +31,7 @@
             .unidade-relatorio{break-inside:auto}.unidade-relatorio h3{color:#111;border-bottom:2px solid #111;padding-bottom:5px}
             .tabela-container{overflow:visible}.tabela-relatorio{min-width:0}.tabela-relatorio th,.tabela-relatorio td{border:1px solid #aaa;padding:5px;color:#111;background:#fff;font-size:8.5pt}
             .tabela-relatorio tr{break-inside:avoid}.estado-lista{border:0}
+            .assinaturas-relatorio{color:#111;break-inside:avoid;margin-top:55px;padding-top:0}.campo-assinatura{color:#111}.campo-assinatura span{color:#333}
         }
     </style>
 </head>
@@ -89,7 +94,15 @@
         const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
         let perfilAtual = null;
         let demandas = [];
+        const demandaIndividualId = new URLSearchParams(window.location.search).get('demanda');
         document.getElementById('mesReferencia').value = mesAtual;
+
+        function htmlAssinaturas() {
+            return `<footer class="assinaturas-relatorio" aria-label="Assinaturas do relatório">
+                <div class="campo-assinatura"><span class="linha-assinatura"></span><strong>Técnico responsável</strong><span>Nome e assinatura</span></div>
+                <div class="campo-assinatura"><span class="linha-assinatura"></span><strong>Ateste de execução do serviço</strong><span>Nome, cargo e assinatura</span></div>
+            </footer>`;
+        }
 
         function mostrarErro(mensagem) {
             const caixa = document.getElementById('telaErro');
@@ -226,13 +239,29 @@
                         </tr>`).join('')}</tbody>
                     </table></div>
                 </section>`).join('');
-            document.getElementById('relatorioGerado').innerHTML = cabecalho + secoes;
+            document.getElementById('relatorioGerado').innerHTML = cabecalho + secoes + htmlAssinaturas();
+        }
+
+        function renderizarRelatorioIndividual(item) {
+            if (!item) {
+                document.getElementById('relatorioGerado').innerHTML = '<div class="estado-lista">Demanda não encontrada.</div>';
+                return;
+            }
+            document.querySelectorAll('.filtros-relatorio label, .filtros-relatorio .btn-criar').forEach(elemento => { elemento.hidden = true; });
+            const cabecalho = `<div class="cabecalho-relatorio"><h2>Relatório individual da demanda #${escapeHtml(item.protocolo || '—')}</h2>
+                <div class="resumo-relatorio"><span><b>Unidade:</b> ${escapeHtml(item.unidade_atendida || 'Não informada')}</span><span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span></div></div>`;
+            const conteudo = `<section class="unidade-relatorio"><div class="tabela-container"><table class="tabela-relatorio">
+                <thead><tr><th>Protocolo</th><th>Demanda solicitada</th><th>Data da solicitação</th><th>Data da conclusão</th><th>Status</th><th>Parecer técnico</th></tr></thead>
+                <tbody><tr><td>#${escapeHtml(item.protocolo || '—')}</td><td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td><td>${escapeHtml(formatarData(item.criado_em || item.prazo_limite))}</td><td>${escapeHtml(formatarData(item.concluido_em))}</td><td>${escapeHtml(item.status || 'Não informado')}</td><td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td></tr></tbody>
+            </table></div></section>`;
+            document.getElementById('relatorioGerado').innerHTML = cabecalho + conteudo + htmlAssinaturas();
         }
 
         function carregarDemandas() {
             onSnapshot(query(collection(db, 'demandas'), orderBy('protocolo', 'desc')), snapshot => {
                 demandas = snapshot.docs.map(item => ({ id:item.id, ...item.data() }));
-                renderizarRelatorio(true);
+                if (demandaIndividualId) renderizarRelatorioIndividual(demandas.find(item => item.id === demandaIndividualId));
+                else renderizarRelatorio(true);
             }, error => {
                 console.error('Falha ao carregar demandas:', error);
                 mostrarErro(`Falha ao carregar demandas: ${error.code || 'erro-desconhecido'}`);

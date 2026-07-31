@@ -19,7 +19,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Busca de demandas por protocolo, escola/unidade em lista suspensa pesquisável, prioridade ou data de solicitação.
 - Exclusão de demandas por usuários operacionais, protegida por confirmação explícita e aviso de ação permanente.
 - Página colaborativa de cessão de uso com produto, destinatário, tombo, datas prevista e real, status e estado do bem na devolução.
-- Relatórios mensais de TI e manutenção geral, agrupados por unidade e preparados para impressão ou PDF.
+- Relatórios mensais e individuais de demandas, com assinaturas do técnico responsável e do ateste de execução, preparados para impressão ou PDF.
 - Prioridades Normal, Alta e Crítico, com listagem de pendentes na ordem Crítico, Alta e Normal.
 - Cards coloridos por prioridade: Normal em amarelo, Alta/Grave em vermelho, Crítico em vermelho intenso e concluídos em verde.
 - Categoria `Capina` no lugar de `Limpeza`, mantendo compatibilidade com registros antigos.

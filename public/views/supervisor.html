@@ -485,6 +485,7 @@ if (d.prazo_limite) {
                         <button class="btn-acao" style="background: #10b981;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Concluído">Concluir</button>
                         <button class="btn-acao" style="background: #ef4444;" data-acao="status" data-demanda-id="${d.id}" data-novo-status="Cancelado">Cancelar</button>
                     </div>
+                    <button class="btn-acao" style="background:#475569; margin-top:8px;" data-acao="relatorio" data-demanda-id="${d.id}">Emitir relatório</button>
                     <button class="btn-acao" style="background:#991b1b; margin-top:8px;" data-acao="excluir" data-demanda-id="${d.id}" data-protocolo="${escapeHtml(d.protocolo)}">Excluir demanda</button>
                 </div>
             `;
@@ -564,6 +565,10 @@ if (d.prazo_limite) {
         document.addEventListener('click', (event) => {
             const botao = event.target.closest('[data-acao][data-demanda-id]');
             if (!botao) return;
+            if (botao.dataset.acao === 'relatorio') {
+                window.location.href = `relatorios.html?demanda=${encodeURIComponent(botao.dataset.demandaId)}`;
+                return;
+            }
             if (botao.dataset.acao === 'excluir') {
                 excluirDemanda(botao.dataset.demandaId, botao.dataset.protocolo);
                 return;
