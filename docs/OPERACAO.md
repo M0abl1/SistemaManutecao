@@ -41,7 +41,7 @@ A sidebar dos painéis possui o botão **Cessão de uso**. Todos os perfis opera
 
 ## Relatórios mensais
 
-A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Demandas ainda não concluídas permanecem no relatório com os campos de conclusão não informados. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal. O cabeçalho identifica a Prefeitura Municipal de Santo Estêvão, a Secretaria Municipal de Educação e a Coordenação de Patrimônio e Manutenção. No final do documento há campos para assinatura do técnico responsável e para o ateste de execução do serviço.
+A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Demandas ainda não concluídas permanecem no relatório com os campos de conclusão não informados. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal. O cabeçalho identifica a Prefeitura Municipal de Santo Estêvão, a Secretaria Municipal de Educação e a Coordenação de Patrimônio e Manutenção. No rodapé da última folha há campos para assinatura do técnico responsável e para o ateste de execução do serviço.
 
 No painel geral do supervisor, o botão **Emitir relatório** de cada card abre o relatório individual daquela demanda, também preparado para impressão ou PDF e com os dois campos de assinatura.
 
