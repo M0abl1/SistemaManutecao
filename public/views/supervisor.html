@@ -57,6 +57,7 @@
             <div class="menu-item" data-alvo="concluidas" data-categoria="geral" data-status="Concluído"><span>✅</span> Concluídas manutenção</div>
             <div class="menu-item" data-alvo="canceladas" data-categoria="todas" data-status="Cancelado"><span>❌</span> Canceladas</div>
             <div class="menu-item" id="btnEmprestimos"><span>📦</span> Cessão de uso</div>
+            <div class="menu-item" id="btnEstoque"><span>🗃️</span> Estoque</div>
             <div class="menu-item" id="btnRelatorios"><span>📊</span> Relatórios</div>
             <div class="menu-item" data-alvo="unidades"><span>🏢</span> Unidades / Setores</div>
             
@@ -214,6 +215,7 @@
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
@@ -278,6 +280,7 @@
         });
         document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebarMobile);
         document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
+        document.getElementById('btnEstoque').addEventListener('click', () => { window.location.href = 'estoque.html'; });
         document.getElementById('btnRelatorios').addEventListener('click', () => { window.location.href = 'relatorios.html'; });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') fecharSidebarMobile();
@@ -309,6 +312,7 @@
                         nome: userDoc.data().nome || user.displayName || 'Supervisor',
                         cargo: 'supervisor'
                     };
+                    inicializarMateriaisOs({ db, auth, obterPerfil:() => perfilUsuarioAtual, mostrarErro });
                     // Inicia a carga de dados
                     inicializarTelasSupervisor();
                     inicializarUnidades();
@@ -477,6 +481,7 @@ if (d.prazo_limite) {
                     </div>
 
                     <textarea id="obs-supervisor-${d.id}" data-campo="observacao_tecnico" rows="3" placeholder="Preencha ou edite o parecer técnico" style="width:100%; margin-top:12px; padding:10px; border:1px solid var(--borda); border-radius:6px; background:var(--bg-principal); color:var(--texto-principal);">${d.observacao_tecnico || ''}</textarea>
+                    <section class="materiais-os"><h4>Materiais usados na OS (opcional)</h4><div class="material-os-form"><input data-produto-os list="listaProdutosEstoqueOs" autocomplete="off" placeholder="Digite e selecione um produto"><input data-quantidade-os type="number" min="1" max="1000000" value="1" aria-label="Quantidade"><button type="button" data-adicionar-material>Adicionar</button></div><div data-materiais-demanda="${d.id}"><small>Carregando materiais...</small></div></section>
                     <button class="btn btn-salvar-edicao" type="button" data-acao="salvar" data-demanda-id="${d.id}">Salvar edição</button>
                     
                     <div class="acoes-grupo" style="margin-top: 15px; display: flex; gap: 8px;">
@@ -514,6 +519,7 @@ if (d.prazo_limite) {
                 document.getElementById('listaAndamento').innerHTML = htmlAndamento || '<p style="color: var(--texto-secundario);">Nenhuma demanda em andamento.</p>';
                 document.getElementById('listaConcluidas').innerHTML = htmlConcluidas || '<p style="color: var(--texto-secundario);">Nenhuma demanda concluída.</p>';
                 document.getElementById('listaCanceladas').innerHTML = htmlCanceladas || '<p style="color: var(--texto-secundario);">Nenhuma demanda cancelada.</p>';
+                document.dispatchEvent(new Event('demandas-renderizadas'));
                 aplicarFiltroBusca();
             });
         }

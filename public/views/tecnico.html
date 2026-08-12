@@ -19,6 +19,7 @@
             <button class="menu-item" data-filtro-status="Concluído" data-filtro-categoria="geral">✅ Concluídas manutenção</button>
             <button class="menu-item" data-filtro-status="Cancelado" data-filtro-categoria="todas">❌ Canceladas</button>
             <button class="menu-item" id="btnEmprestimos">📦 Cessão de uso</button>
+            <button class="menu-item" id="btnEstoque">🗃️ Estoque</button>
             <button class="menu-item" id="btnRelatorios">📊 Relatórios</button>
             <button class="menu-item sair" id="btnSair">🚪 Sair</button>
         </nav>
@@ -85,6 +86,7 @@
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
@@ -160,6 +162,7 @@
                 const perfil = perfilDoc.data();
                 perfilUsuarioAtual = { uid: user.uid, nome: perfil.nome || user.displayName || 'Usuário', cargo: perfil.cargo };
                 document.getElementById('nomeTecnico').textContent = `${perfilUsuarioAtual.nome} — ${perfilUsuarioAtual.cargo}`;
+                inicializarMateriaisOs({ db, auth, obterPerfil:() => perfilUsuarioAtual, mostrarErro });
                 inicializarUnidades();
                 inicializarDemandas();
             } catch (error) {
@@ -241,7 +244,7 @@
                     : d.status === 'Em Andamento' ? 'var(--status-andamento)' : 'var(--status-pendente)';
                 const alteradoPor = d.status_alterado_por?.nome
                     ? `${d.status_alterado_por.nome} (${d.status_alterado_por.cargo || 'cargo não informado'})` : 'Não registrado';
-                return `<article class="card-demanda ${classeCorDemanda(d)}" data-id="${escapeHtml(d.idDoc)}">
+                return `<article class="card-demanda ${classeCorDemanda(d)}" data-id="${escapeHtml(d.idDoc)}" data-demanda-card="${escapeHtml(d.idDoc)}" data-protocolo="${escapeHtml(d.protocolo)}">
                     <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
                     <div class="grid-edicao">
                         <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, prioridadeAtual(d.prioridade))}</select></label>
@@ -252,6 +255,7 @@
                     <div class="detalhe"><b>Atendido:</b> ${escapeHtml(d.quem_atendido || 'Não informado')}</div>
                     <div class="caixa-descricao"><b>Solicitação:</b><br>${escapeHtml(d.descricao || 'Sem descrição.')}</div>
                     <label class="parecer-label">Parecer técnico<textarea data-campo="observacao_tecnico" rows="3" maxlength="5000">${escapeHtml(d.observacao_tecnico)}</textarea></label>
+                    <section class="materiais-os"><h4>Materiais usados na OS (opcional)</h4><div class="material-os-form"><input data-produto-os list="listaProdutosEstoqueOs" autocomplete="off" placeholder="Digite e selecione um produto"><input data-quantidade-os type="number" min="1" max="1000000" value="1" aria-label="Quantidade"><button type="button" data-adicionar-material>Adicionar</button></div><div data-materiais-demanda="${escapeHtml(d.idDoc)}"><small>Carregando materiais...</small></div></section>
                     <div class="detalhe"><b>Última alteração:</b> ${escapeHtml(alteradoPor)}</div>
                     <button class="btn-salvar" data-acao="salvar" data-demanda-id="${escapeHtml(d.idDoc)}">Salvar edição</button>
                     <div class="acoes-grupo">
@@ -263,6 +267,7 @@
                     <button class="btn-excluir" data-acao="excluir" data-demanda-id="${escapeHtml(d.idDoc)}" data-protocolo="${escapeHtml(d.protocolo)}">Excluir demanda</button>
                 </article>`;
             }).join('');
+            document.dispatchEvent(new Event('demandas-renderizadas'));
         }
 
         function inicializarDemandas() {
@@ -390,6 +395,7 @@
             renderizarDemandas();
         });
         document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
+        document.getElementById('btnEstoque').addEventListener('click', () => { window.location.href = 'estoque.html'; });
         document.getElementById('btnRelatorios').addEventListener('click', () => { window.location.href = 'relatorios.html'; });
         document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     </script>

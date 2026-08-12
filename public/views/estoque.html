@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque de Manutenção</title>
+    <link rel="stylesheet" href="../css/tecnico.css">
+    <style>
+        .grade-estoque{display:grid;grid-template-columns:minmax(280px,380px) 1fr;gap:18px}.painel-estoque{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:18px}.painel-estoque h2{margin-bottom:14px}.form-estoque{display:grid;gap:12px}.form-estoque label{display:grid;gap:6px}.acoes-produto{display:flex;gap:8px;flex-wrap:wrap}.lista-produtos{display:grid;gap:10px}.produto-card{border:1px solid var(--borda);border-left:5px solid var(--primaria);border-radius:9px;padding:14px;background:var(--bg-principal)}.produto-card.arquivado{opacity:.65;border-left-color:#64748b}.produto-topo{display:flex;justify-content:space-between;gap:12px}.saldo{font-size:20px;font-weight:800;color:var(--primaria)}.btn-secundario,.btn-perigo{border:0;border-radius:7px;padding:9px 12px;color:#fff;cursor:pointer;font-weight:700}.btn-secundario{background:#475569}.btn-perigo{background:#991b1b}.somente-supervisor[hidden]{display:none!important}.historico-item{padding:10px 0;border-bottom:1px solid var(--borda)}
+        @media(max-width:850px){.grade-estoque{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3>Estoque</h3></div>
+        <nav>
+            <button class="menu-item ativo">📦 Estoque</button>
+            <button class="menu-item" id="btnDemandas">📋 Demandas</button>
+            <button class="menu-item" id="btnEmprestimos">🔄 Cessão de uso</button>
+            <button class="menu-item sair" id="btnSair">🚪 Sair</button>
+        </nav>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <main class="conteudo-principal">
+        <header><button class="btn-toggle" id="btnToggleSidebar" aria-label="Abrir menu">☰</button><div><h1>Estoque de manutenção</h1><p id="nomeUsuario">Validando acesso...</p></div></header>
+        <div id="telaErro" class="alerta-erro" hidden></div>
+        <section class="painel-estoque somente-supervisor" id="painelNovoProduto" hidden>
+            <h2>Cadastrar produto</h2>
+            <form id="formProduto" class="form-estoque">
+                <label>Nome do produto<input id="produtoNome" maxlength="150" required></label>
+                <label>Código / referência<input id="produtoCodigo" maxlength="80" required></label>
+                <label>Quantidade inicial<input id="produtoQuantidade" type="number" min="0" max="1000000" value="0" required></label>
+                <button class="btn-criar" type="submit">Cadastrar produto</button>
+            </form>
+        </section>
+        <div class="grade-estoque">
+            <section class="painel-estoque"><h2>Produtos</h2><input id="buscaProduto" type="search" placeholder="Pesquisar nome ou código"><div id="listaProdutos" class="lista-produtos"><p>Carregando...</p></div></section>
+            <section class="painel-estoque somente-supervisor" id="painelHistorico" hidden><h2>Histórico de movimentações</h2><div id="listaMovimentacoes"><p>Carregando...</p></div></section>
+        </div>
+    </main>
+    <script type="module">
+        import { db, auth } from '../src/config/firebase.js';
+        import { collection, query, orderBy, onSnapshot, doc, getDoc, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
+        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+        const normalizar = valor => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        let perfil = null;
+        let produtos = [];
+        let movimentacoes = [];
+        let consumos = [];
+
+        function atorAtual() { return { uid:auth.currentUser.uid, nome:perfil.nome, cargo:perfil.cargo }; }
+        function mostrarErro(mensagem) { const caixa=document.getElementById('telaErro'); caixa.hidden=false; caixa.textContent=mensagem; }
+        function fecharSidebar(){document.getElementById('sidebar').classList.remove('aberta');document.getElementById('sidebarBackdrop').classList.remove('visivel');document.body.classList.remove('menu-mobile-aberto');}
+        document.getElementById('btnToggleSidebar').onclick=()=>{const aberta=document.getElementById('sidebar').classList.toggle('aberta');document.getElementById('sidebarBackdrop').classList.toggle('visivel',aberta);document.body.classList.toggle('menu-mobile-aberto',aberta)};
+        document.getElementById('sidebarBackdrop').onclick=fecharSidebar;
+
+        onAuthStateChanged(auth, async user => {
+            if (!user) return window.location.replace('../index.html');
+            try {
+                const perfilDoc=await getDoc(doc(db,'usuarios',user.uid));
+                if (!perfilDoc.exists()) return mostrarErro('Perfil não encontrado.');
+                perfil={uid:user.uid,nome:perfilDoc.data().nome || user.displayName || 'Usuário',cargo:perfilDoc.data().cargo};
+                const supervisor=normalizar(perfil.cargo)==='supervisor';
+                document.getElementById('nomeUsuario').textContent=`${perfil.nome} — ${perfil.cargo}`;
+                document.getElementById('painelNovoProduto').hidden=!supervisor;
+                document.getElementById('painelHistorico').hidden=!supervisor;
+                document.getElementById('btnDemandas').onclick=()=>window.location.href=supervisor?'supervisor.html':'tecnico.html';
+                carregarDados(supervisor);
+            } catch(error){mostrarErro(`Falha ao validar acesso: ${error.code || error.message}`)}
+        });
+
+        function carregarDados(supervisor){
+            onSnapshot(query(collection(db,'produtos_estoque'),orderBy('nome')),snapshot=>{produtos=snapshot.docs.map(item=>({id:item.id,...item.data()}));renderizarProdutos()},error=>mostrarErro(`Falha ao carregar produtos: ${error.code}`));
+            if(supervisor) {
+                onSnapshot(query(collection(db,'movimentacoes_estoque'),orderBy('criado_em','desc')),snapshot=>{movimentacoes=snapshot.docs.map(item=>({id:item.id,...item.data()}));renderizarHistorico()},error=>mostrarErro(`Falha ao carregar histórico: ${error.code}`));
+                onSnapshot(query(collection(db,'consumos_os'),orderBy('criado_em','desc')),snapshot=>{consumos=snapshot.docs.map(item=>({id:item.id,...item.data()}));renderizarHistorico()},error=>mostrarErro(`Falha ao carregar saídas por OS: ${error.code}`));
+            }
+        }
+
+        function renderizarProdutos(){
+            const termo=normalizar(document.getElementById('buscaProduto').value);
+            const supervisor=normalizar(perfil?.cargo)==='supervisor';
+            const filtrados=produtos.filter(p=>normalizar(`${p.nome} ${p.codigo}`).includes(termo));
+            document.getElementById('listaProdutos').innerHTML=filtrados.map(p=>`<article class="produto-card ${p.ativo===false?'arquivado':''}"><div class="produto-topo"><div><strong>${escapeHtml(p.nome)}</strong><br><small>${escapeHtml(p.codigo)}</small></div><span class="saldo">${escapeHtml(p.quantidade)}</span></div>${supervisor?`<div class="acoes-produto"><button class="btn-secundario" data-acao="entrada" data-id="${p.id}">Adicionar saldo</button><button class="btn-perigo" data-acao="arquivar" data-id="${p.id}">${p.ativo===false?'Reativar':'Arquivar'}</button></div>`:''}</article>`).join('') || '<p>Nenhum produto encontrado.</p>';
+        }
+
+        function renderizarHistorico(){
+            const saidas=consumos.map(item=>({...item,tipo:'saida',detalhes:`Utilizado na OS #${item.protocolo}`}));
+            const itens=[...movimentacoes,...saidas].sort((a,b)=>(b.criado_em?.seconds||0)-(a.criado_em?.seconds||0));
+            document.getElementById('listaMovimentacoes').innerHTML=itens.slice(0,100).map(m=>`<div class="historico-item"><strong>${m.tipo==='entrada'?'+':'−'}${escapeHtml(m.quantidade)} — ${escapeHtml(m.produto_nome)}</strong><br><small>${escapeHtml(m.detalhes || '')} · ${escapeHtml(m.responsavel?.nome || 'Não informado')}</small></div>`).join('') || '<p>Nenhuma movimentação registrada.</p>';
+        }
+
+        document.getElementById('formProduto').addEventListener('submit',async event=>{
+            event.preventDefault();
+            const nome=document.getElementById('produtoNome').value.trim(),codigo=document.getElementById('produtoCodigo').value.trim(),quantidade=Number(document.getElementById('produtoQuantidade').value);
+            if (!nome || !codigo || !Number.isSafeInteger(quantidade) || quantidade<0) return alert('Dados inválidos.');
+            if (produtos.some(p=>normalizar(p.nome)===normalizar(nome) || normalizar(p.codigo)===normalizar(codigo))) return alert('Já existe produto com o mesmo nome ou código.');
+            const produtoRef=doc(collection(db,'produtos_estoque')),movRef=doc(collection(db,'movimentacoes_estoque'));
+            await runTransaction(db,async tx=>{tx.set(produtoRef,{nome,codigo,quantidade,ativo:true,criado_por:atorAtual(),criado_em:serverTimestamp(),atualizado_em:serverTimestamp()});tx.set(movRef,{tipo:'entrada',produto_id:produtoRef.id,produto_nome:nome,quantidade,responsavel:atorAtual(),detalhes:'Cadastro com saldo inicial',criado_em:serverTimestamp()})});
+            event.target.reset();document.getElementById('produtoQuantidade').value='0';
+        });
+
+        document.getElementById('listaProdutos').addEventListener('click',async event=>{
+            const botao=event.target.closest('[data-acao][data-id]');if(!botao)return;
+            const produto=produtos.find(p=>p.id===botao.dataset.id);if(!produto)return;
+            const produtoRef=doc(db,'produtos_estoque',produto.id);
+            if(botao.dataset.acao==='entrada'){
+                const quantidade=Number(prompt(`Quantidade para adicionar a ${produto.nome}:`));if(!Number.isSafeInteger(quantidade)||quantidade<=0)return alert('Informe uma quantidade inteira positiva.');
+                const movRef=doc(collection(db,'movimentacoes_estoque'));
+                await runTransaction(db,async tx=>{const atual=await tx.get(produtoRef);if(!atual.exists())throw new Error('Produto não encontrado.');tx.update(produtoRef,{quantidade:atual.data().quantidade+quantidade,atualizado_em:serverTimestamp()});tx.set(movRef,{tipo:'entrada',produto_id:produto.id,produto_nome:produto.nome,quantidade,responsavel:atorAtual(),detalhes:'Entrada manual de estoque',criado_em:serverTimestamp()})});
+            }else{
+                const novoAtivo=produto.ativo===false;if(!confirm(`${novoAtivo?'Reativar':'Arquivar'} ${produto.nome}?`))return;
+                await runTransaction(db,async tx=>tx.update(produtoRef,{ativo:novoAtivo,atualizado_em:serverTimestamp()}));
+            }
+        });
+        document.getElementById('buscaProduto').addEventListener('input',renderizarProdutos);
+        document.getElementById('btnEmprestimos').onclick=()=>window.location.href='emprestimos.html';
+        document.getElementById('btnSair').onclick=()=>signOut(auth).then(()=>window.location.href='../index.html');
+    </script>
+</body>
+</html>

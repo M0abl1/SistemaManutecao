@@ -45,6 +45,12 @@ A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a ca
 
 No painel geral do supervisor, o botão **Emitir relatório** de cada card abre o relatório individual daquela demanda, também preparado para impressão ou PDF e com os dois campos de assinatura.
 
+## Estoque integrado às ordens de serviço
+
+A opção **Estoque** está disponível na sidebar. Todos os usuários operacionais podem consultar produtos e saldos. Somente o cargo `supervisor` pode cadastrar produtos, adicionar entradas, arquivar ou reativar itens e consultar o histórico consolidado.
+
+Cada demanda possui o campo opcional **Materiais usados na OS**. Digite o nome do produto, selecione uma opção da lista pesquisável, informe a quantidade e clique em **Adicionar**. É possível registrar diversos produtos na mesma OS. O saldo é conferido e debitado em transação; se qualquer validação falhar, nada é retirado. O botão **Remover** estorna a quantidade ao estoque quando um item foi informado incorretamente.
+
 ## TI
 
 O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões operacionais sobre os chamados. A distinção de cargo permanece apenas para identificação e auditoria de quem realizou cada alteração.

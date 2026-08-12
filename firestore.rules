@@ -14,6 +14,9 @@ service cloud.firestore {
     //   data_emprestimo, data_devolucao, status, criado_por e criado_em;
     //   quando devolvido, inclui devolvido_em e auditoria da devolução
     // configuracoes/{contador}: ultimo_numero
+    // produtos_estoque/{id}: nome, codigo, quantidade, ativo, auditoria
+    // consumos_os/{demandaId_produtoId}: material usado e vínculo com a OS
+    // movimentacoes_estoque/{id}: histórico imutável de entradas administrativas
 
     // ===============================================================
     // Funções comuns
@@ -216,6 +219,67 @@ service cloud.firestore {
         data.ultimo_numero >= 0 && data.ultimo_numero <= 999999999;
     }
 
+    function isValidProdutoEstoque(data) {
+      return data.keys().hasAll([
+          'nome', 'codigo', 'quantidade', 'ativo', 'criado_por',
+          'criado_em', 'atualizado_em'
+        ]) &&
+        data.keys().hasOnly([
+          'nome', 'codigo', 'quantidade', 'ativo', 'criado_por',
+          'criado_em', 'atualizado_em', 'ultima_operacao_id'
+        ]) &&
+        validText(data.nome, 1, 150) &&
+        validText(data.codigo, 1, 80) &&
+        data.quantidade is int && data.quantidade >= 0 && data.quantidade <= 1000000 &&
+        data.ativo is bool &&
+        validStatusActor(data.criado_por) &&
+        data.criado_em is timestamp && data.atualizado_em is timestamp &&
+        validOptionalText(data, 'ultima_operacao_id', 300);
+    }
+
+    function isValidConsumoOs(data) {
+      return data.keys().hasAll([
+          'demanda_id', 'protocolo', 'produto_id', 'produto_nome',
+          'quantidade', 'responsavel', 'criado_em'
+        ]) &&
+        data.keys().hasOnly([
+          'demanda_id', 'protocolo', 'produto_id', 'produto_nome',
+          'quantidade', 'responsavel', 'criado_em'
+        ]) &&
+        validText(data.demanda_id, 1, 128) &&
+        data.protocolo is int && data.protocolo >= 1000 && data.protocolo <= 999999999 &&
+        validText(data.produto_id, 1, 128) &&
+        validText(data.produto_nome, 1, 150) &&
+        data.quantidade is int && data.quantidade > 0 && data.quantidade <= 1000000 &&
+        validStatusActor(data.responsavel) &&
+        data.criado_em is timestamp;
+    }
+
+    function consumoActorMatchesRequester(data) {
+      return data.responsavel.uid == request.auth.uid &&
+        data.responsavel.nome == profile().data.nome &&
+        data.responsavel.cargo == profile().data.cargo &&
+        data.criado_em == request.time;
+    }
+
+    function isValidMovimentacaoEstoque(data) {
+      return data.keys().hasAll([
+          'tipo', 'produto_id', 'produto_nome', 'quantidade',
+          'responsavel', 'detalhes', 'criado_em'
+        ]) &&
+        data.keys().hasOnly([
+          'tipo', 'produto_id', 'produto_nome', 'quantidade',
+          'responsavel', 'detalhes', 'criado_em'
+        ]) &&
+        data.tipo in ['entrada', 'saida'] &&
+        validText(data.produto_id, 1, 128) &&
+        validText(data.produto_nome, 1, 150) &&
+        data.quantidade is int && data.quantidade >= 0 && data.quantidade <= 1000000 &&
+        validStatusActor(data.responsavel) &&
+        validText(data.detalhes, 1, 500) &&
+        data.criado_em is timestamp;
+    }
+
     function canReadDemanda() {
       return isOperational();
     }
@@ -312,6 +376,88 @@ service cloud.firestore {
         (!('status' in resource.data) || resource.data.status == 'Em uso') &&
         returnActorMatchesRequester(request.resource.data);
       allow delete: if false;
+    }
+
+    match /produtos_estoque/{produtoId} {
+      allow read: if isOperational();
+      allow create: if isSupervisor() &&
+        isValidProdutoEstoque(request.resource.data) &&
+        request.resource.data.criado_por.uid == request.auth.uid &&
+        request.resource.data.criado_por.nome == profile().data.nome &&
+        request.resource.data.criado_por.cargo == profile().data.cargo &&
+        request.resource.data.criado_em == request.time &&
+        request.resource.data.atualizado_em == request.time;
+      allow update: if isValidProdutoEstoque(request.resource.data) &&
+        request.resource.data.criado_por == resource.data.criado_por &&
+        request.resource.data.criado_em == resource.data.criado_em &&
+        (
+          isSupervisor() ||
+          (isOperational() &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'quantidade', 'ultima_operacao_id', 'atualizado_em'
+           ]) &&
+           request.resource.data.atualizado_em == request.time &&
+           ('ultima_operacao_id' in request.resource.data) &&
+           (
+             (existsAfter(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)) &&
+              getAfter(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.produto_id == produtoId &&
+              ((!exists(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)) &&
+                request.resource.data.quantidade == resource.data.quantidade -
+                  getAfter(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.quantidade) ||
+               (exists(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)) &&
+                getAfter(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.quantidade >
+                  get(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.quantidade &&
+                request.resource.data.quantidade == resource.data.quantidade -
+                  (getAfter(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.quantidade -
+                   get(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.quantidade)))) ||
+             (!existsAfter(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)) &&
+              exists(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)) &&
+              get(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.produto_id == produtoId &&
+              request.resource.data.quantidade == resource.data.quantidade +
+                get(/databases/$(database)/documents/consumos_os/$(request.resource.data.ultima_operacao_id)).data.quantidade)
+           ))
+        );
+      allow delete: if false;
+    }
+
+    match /consumos_os/{consumoId} {
+      allow read: if isOperational();
+      allow create: if isOperational() && isValidConsumoOs(request.resource.data) &&
+        consumoActorMatchesRequester(request.resource.data) &&
+        exists(/databases/$(database)/documents/demandas/$(request.resource.data.demanda_id)) &&
+        get(/databases/$(database)/documents/demandas/$(request.resource.data.demanda_id)).data.protocolo == request.resource.data.protocolo &&
+        get(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)).data.ativo == true &&
+        request.resource.data.produto_nome == get(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)).data.nome &&
+        getAfter(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)).data.quantidade ==
+          get(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)).data.quantidade - request.resource.data.quantidade &&
+        getAfter(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)).data.ultima_operacao_id == consumoId;
+      allow update: if isOperational() && isValidConsumoOs(request.resource.data) &&
+        consumoActorMatchesRequester(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'quantidade', 'responsavel', 'criado_em'
+        ]) && request.resource.data.quantidade > resource.data.quantidade &&
+        getAfter(/databases/$(database)/documents/produtos_estoque/$(resource.data.produto_id)).data.quantidade ==
+          get(/databases/$(database)/documents/produtos_estoque/$(resource.data.produto_id)).data.quantidade -
+            (request.resource.data.quantidade - resource.data.quantidade) &&
+        getAfter(/databases/$(database)/documents/produtos_estoque/$(resource.data.produto_id)).data.ultima_operacao_id == consumoId;
+      allow delete: if isOperational() &&
+        getAfter(/databases/$(database)/documents/produtos_estoque/$(resource.data.produto_id)).data.quantidade ==
+          get(/databases/$(database)/documents/produtos_estoque/$(resource.data.produto_id)).data.quantidade + resource.data.quantidade &&
+        getAfter(/databases/$(database)/documents/produtos_estoque/$(resource.data.produto_id)).data.ultima_operacao_id == consumoId;
+    }
+
+    match /movimentacoes_estoque/{movimentoId} {
+      allow read: if isSupervisor();
+      allow create: if isSupervisor() &&
+        isValidMovimentacaoEstoque(request.resource.data) &&
+        request.resource.data.responsavel.uid == request.auth.uid &&
+        request.resource.data.responsavel.nome == profile().data.nome &&
+        request.resource.data.responsavel.cargo == profile().data.cargo &&
+        request.resource.data.criado_em == request.time &&
+        existsAfter(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)) &&
+        request.resource.data.produto_nome ==
+          getAfter(/databases/$(database)/documents/produtos_estoque/$(request.resource.data.produto_id)).data.nome;
+      allow update, delete: if false;
     }
 
     match /configuracoes/{configId} {

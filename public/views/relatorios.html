@@ -45,6 +45,7 @@
         <nav>
             <button class="menu-item ativo">📊 Relatórios</button>
             <button class="menu-item" id="btnEmprestimos">📦 Cessão de uso</button>
+            <button class="menu-item" id="btnEstoque">🗃️ Estoque</button>
             <button class="menu-item voltar" id="btnDemandas">📋 Voltar às demandas</button>
             <button class="menu-item sair" id="btnSair">🚪 Sair</button>
         </nav>
@@ -288,6 +289,7 @@
         document.getElementById('unidadeRelatorio').addEventListener('change', () => renderizarRelatorio(false));
         document.getElementById('btnImprimir').addEventListener('click', () => window.print());
         document.getElementById('btnEmprestimos').addEventListener('click', () => { window.location.href = 'emprestimos.html'; });
+        document.getElementById('btnEstoque').addEventListener('click', () => { window.location.href = 'estoque.html'; });
         document.getElementById('btnSair').addEventListener('click', () => signOut(auth).then(() => { window.location.href = '../index.html'; }));
     </script>
 </body>
