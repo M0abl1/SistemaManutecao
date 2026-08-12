@@ -76,6 +76,7 @@
             </button>
             <h2 id="tituloPagina" style="margin: 0;">Painel Principal</h2>
         </header>
+        <div id="telaErro" class="alerta-erro" hidden></div>
 
         <!-- BUSCA -->
         <div class="card" style="padding: 12px 20px;">
@@ -241,6 +242,12 @@
             `<option value="${escapeHtml(tipo)}"></option>`
         ).join('');
 
+        function mostrarErro(mensagem) {
+            const caixa = document.getElementById('telaErro');
+            caixa.hidden = false;
+            caixa.textContent = mensagem;
+        }
+
         async function negarAcesso(mensagem) {
             alert(mensagem);
             try {
@@ -300,8 +307,15 @@
                     setTimeout(() => { if (!auth.currentUser) window.location.href = '../index.html'; }, 500);
                     return;
                 }
+                let userDoc;
                 try {
-                    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                    userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                } catch (error) {
+                    console.error("Falha ao consultar o perfil:", error);
+                    mostrarErro(`Não foi possível consultar suas permissões: ${error.code || 'erro-desconhecido'}`);
+                    return;
+                }
+                try {
                     const cargoNormalizado = String(userDoc.data()?.cargo || '').trim().toLocaleLowerCase('pt-BR');
                     if (!userDoc.exists() || cargoNormalizado !== 'supervisor') {
                         await negarAcesso("Acesso negado: Painel exclusivo para supervisores.");
@@ -312,13 +326,18 @@
                         nome: userDoc.data().nome || user.displayName || 'Supervisor',
                         cargo: 'supervisor'
                     };
+                } catch (error) {
+                    console.error("Falha ao interpretar o perfil:", error);
+                    mostrarErro('O perfil retornado pelo Firebase é inválido.');
+                    return;
+                }
+                try {
                     inicializarMateriaisOs({ db, auth, obterPerfil:() => perfilUsuarioAtual, mostrarErro });
-                    // Inicia a carga de dados
                     inicializarTelasSupervisor();
                     inicializarUnidades();
                 } catch (error) {
-                    console.error("Falha ao validar o perfil:", error);
-                    await negarAcesso("Não foi possível validar as suas permissões.");
+                    console.error("Falha ao iniciar o painel:", error);
+                    mostrarErro(`Permissão validada, mas o painel não iniciou: ${error.message || error.code || 'erro-desconhecido'}`);
                 }
             });
         });
