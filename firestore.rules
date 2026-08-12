@@ -382,12 +382,14 @@ service cloud.firestore {
       allow read: if isOperational();
       allow create: if isSupervisor() &&
         isValidProdutoEstoque(request.resource.data) &&
+        request.resource.data.codigo == produtoId &&
         request.resource.data.criado_por.uid == request.auth.uid &&
         request.resource.data.criado_por.nome == profile().data.nome &&
         request.resource.data.criado_por.cargo == profile().data.cargo &&
         request.resource.data.criado_em == request.time &&
         request.resource.data.atualizado_em == request.time;
       allow update: if isValidProdutoEstoque(request.resource.data) &&
+        request.resource.data.codigo == resource.data.codigo &&
         request.resource.data.criado_por == resource.data.criado_por &&
         request.resource.data.criado_em == resource.data.criado_em &&
         (

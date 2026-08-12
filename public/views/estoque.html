@@ -28,7 +28,7 @@
             <h2>Cadastrar produto</h2>
             <form id="formProduto" class="form-estoque">
                 <label>Nome do produto<input id="produtoNome" maxlength="150" required></label>
-                <label>Código / referência<input id="produtoCodigo" maxlength="80" required></label>
+                <small>O código de referência será gerado automaticamente e será exclusivo.</small>
                 <label>Quantidade inicial<input id="produtoQuantidade" type="number" min="0" max="1000000" value="0" required></label>
                 <button class="btn-criar" type="submit">Cadastrar produto</button>
             </form>
@@ -94,11 +94,11 @@
 
         document.getElementById('formProduto').addEventListener('submit',async event=>{
             event.preventDefault();
-            const nome=document.getElementById('produtoNome').value.trim(),codigo=document.getElementById('produtoCodigo').value.trim(),quantidade=Number(document.getElementById('produtoQuantidade').value);
-            if (!nome || !codigo || !Number.isSafeInteger(quantidade) || quantidade<0) return alert('Dados inválidos.');
-            if (produtos.some(p=>normalizar(p.nome)===normalizar(nome) || normalizar(p.codigo)===normalizar(codigo))) return alert('Já existe produto com o mesmo nome ou código.');
+            const nome=document.getElementById('produtoNome').value.trim(),quantidade=Number(document.getElementById('produtoQuantidade').value);
+            if (!nome || !Number.isSafeInteger(quantidade) || quantidade<0) return alert('Dados inválidos.');
+            if (produtos.some(p=>normalizar(p.nome)===normalizar(nome))) return alert('Já existe produto com o mesmo nome.');
             const produtoRef=doc(collection(db,'produtos_estoque')),movRef=doc(collection(db,'movimentacoes_estoque'));
-            await runTransaction(db,async tx=>{tx.set(produtoRef,{nome,codigo,quantidade,ativo:true,criado_por:atorAtual(),criado_em:serverTimestamp(),atualizado_em:serverTimestamp()});tx.set(movRef,{tipo:'entrada',produto_id:produtoRef.id,produto_nome:nome,quantidade,responsavel:atorAtual(),detalhes:'Cadastro com saldo inicial',criado_em:serverTimestamp()})});
+            await runTransaction(db,async tx=>{tx.set(produtoRef,{nome,codigo:produtoRef.id,quantidade,ativo:true,criado_por:atorAtual(),criado_em:serverTimestamp(),atualizado_em:serverTimestamp()});tx.set(movRef,{tipo:'entrada',produto_id:produtoRef.id,produto_nome:nome,quantidade,responsavel:atorAtual(),detalhes:'Cadastro com saldo inicial',criado_em:serverTimestamp()})});
             event.target.reset();document.getElementById('produtoQuantidade').value='0';
         });
 

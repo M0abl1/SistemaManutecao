@@ -20,7 +20,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Exclusão de demandas por usuários operacionais, protegida por confirmação explícita e aviso de ação permanente.
 - Página colaborativa de cessão de uso com produto, destinatário, tombo, datas prevista e real, status e estado do bem na devolução.
 - Relatórios mensais e individuais de demandas, com assinaturas do técnico responsável e do ateste de execução, preparados para impressão ou PDF.
-- Estoque integrado às ordens de serviço: supervisores cadastram, abastecem e arquivam produtos; usuários operacionais registram múltiplos materiais usados e podem estorná-los quando inseridos por engano.
+- Estoque integrado às ordens de serviço: supervisores cadastram produtos com código único automático, abastecem e arquivam itens; usuários operacionais registram múltiplos materiais usados e podem estorná-los quando inseridos por engano.
 - Prioridades Normal, Alta e Crítico, com listagem de pendentes na ordem Crítico, Alta e Normal.
 - Cards coloridos por prioridade: Normal em amarelo, Alta/Grave em vermelho, Crítico em vermelho intenso e concluídos em verde.
 - Categoria `Capina` no lugar de `Limpeza`, mantendo compatibilidade com registros antigos.

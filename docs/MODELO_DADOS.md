@@ -61,7 +61,7 @@ Registros antigos com categoria `Limpeza` são apresentados como `Capina` e migr
 
 ## Estoque e consumo por OS
 
-`produtos_estoque/{produtoId}` mantém nome, código, saldo, situação ativa e auditoria de criação/atualização. `consumos_os/{demandaId_produtoId}` vincula produto e quantidade à demanda, permitindo vários produtos por OS e acumulando novas quantidades do mesmo produto. `movimentacoes_estoque/{id}` preserva as entradas administrativas.
+`produtos_estoque/{produtoId}` mantém nome, código, saldo, situação ativa e auditoria de criação/atualização. Para novos produtos, `codigo` recebe o próprio `produtoId`, garantindo geração automática e unicidade sem contador. `consumos_os/{demandaId_produtoId}` vincula produto e quantidade à demanda, permitindo vários produtos por OS e acumulando novas quantidades do mesmo produto. `movimentacoes_estoque/{id}` preserva as entradas administrativas.
 
 O débito e o estorno são executados em transações que atualizam o saldo e o consumo juntos. Técnicos e TI não possuem permissão para editar produtos diretamente; as regras aceitam alteração de saldo por esses cargos apenas quando o consumo correspondente é criado, ampliado ou removido na mesma operação.
 
