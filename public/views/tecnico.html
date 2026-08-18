@@ -87,6 +87,7 @@
         import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
+        import { inicializarCardsMinimizaveis } from '../src/controllers/cardsDemandas.js';
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
@@ -116,6 +117,7 @@
         const escolasDisponiveis = new Set();
         let filtroStatus = 'todos';
         let filtroCategoria = 'todas';
+        inicializarCardsMinimizaveis();
 
         function mostrarErro(mensagem) {
             const caixa = document.getElementById('telaErro');
@@ -245,7 +247,7 @@
                 const alteradoPor = d.status_alterado_por?.nome
                     ? `${d.status_alterado_por.nome} (${d.status_alterado_por.cargo || 'cargo não informado'})` : 'Não registrado';
                 return `<article class="card-demanda ${classeCorDemanda(d)}" data-id="${escapeHtml(d.idDoc)}" data-demanda-card="${escapeHtml(d.idDoc)}" data-protocolo="${escapeHtml(d.protocolo)}">
-                    <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span></div>
+                    <div class="header-demanda"><span class="protocolo">#${escapeHtml(d.protocolo)}</span><span class="escola-card-resumo" title="${escapeHtml(d.unidade_atendida)}">${escapeHtml(d.unidade_atendida || 'Escola não informada')}</span><span class="badge" style="background:${corStatus}">${escapeHtml(d.status)}</span><button class="btn-minimizar-demanda" type="button" data-minimizar-demanda="${escapeHtml(d.idDoc)}" aria-expanded="true">Minimizar</button></div>
                     <div class="grid-edicao">
                         <label>Prioridade<select data-campo="prioridade">${optionsHtml(PRIORIDADES, prioridadeAtual(d.prioridade))}</select></label>
                         <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, tipoOsAtual(d.tipo_manutencao))}</select></label>

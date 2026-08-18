@@ -19,7 +19,7 @@
         .card-demanda.prioridade-critico { background:#fecaca; border-color:#7f1d1d; border-left:6px solid #7f1d1d; }
         .card-demanda.demanda-concluida { background:#dcfce7; border-color:#16a34a; border-left:6px solid #16a34a; }
         .header-demanda {
-            display: flex; justify-content: space-between; align-items: center; 
+            display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
             border-bottom: 1px solid var(--borda, #eeeeee); 
             padding-bottom: 8px; margin-bottom: 8px;
         }
@@ -217,6 +217,7 @@
         import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
+        import { inicializarCardsMinimizaveis } from '../src/controllers/cardsDemandas.js';
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
@@ -233,6 +234,7 @@
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
         let supervisorFiltroStatus = 'todos';
+        inicializarCardsMinimizaveis();
         const escolasDisponiveis = new Set();
         const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -476,7 +478,9 @@ if (d.prazo_limite) {
                 <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-unidade="${d.unidade_atendida || ''}" data-tipo-manutencao="${escapeHtml(tipoSelecionado)}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
+                        <span class="escola-card-resumo" title="${d.unidade_atendida || ''}">${d.unidade_atendida || 'Escola não informada'}</span>
                         <span class="badge" style="background: ${corStatus}">${d.status}</span>
+                        <button class="btn-minimizar-demanda" type="button" data-minimizar-demanda="${d.id}" aria-expanded="true">Minimizar</button>
                     </div>
                     <div class="grid-edicao-demanda">
                         <label>Prioridade<select data-campo="prioridade">${prioridadeOptions}</select></label>
@@ -616,7 +620,7 @@ if (d.prazo_limite) {
                     : filtro === 'data' ? card.dataset.data
                     : filtro === 'unidade' ? card.dataset.unidade
                     : filtro === 'tipo_manutencao' ? card.dataset.tipoManutencao
-                    : card.innerText;
+                    : card.textContent;
                 const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : normalizar(campo).includes(termoBusca);
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
             });

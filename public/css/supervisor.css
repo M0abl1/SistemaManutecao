@@ -41,6 +41,8 @@
     color: var(--texto-principal) !important;
 }
 
+.escola-card-resumo{flex:1;padding:0 12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.btn-minimizar-demanda{border:1px solid var(--borda);border-radius:6px;padding:6px 9px;background:var(--bg-principal);color:var(--texto-principal);cursor:pointer;font-weight:700}.card-demanda.minimizada>:not(.header-demanda){display:none!important}.card-demanda.minimizada .header-demanda{border-bottom:0;padding-bottom:0;margin-bottom:0}.card-demanda.minimizada{padding-top:14px!important;padding-bottom:14px!important}
+
 @media (prefers-color-scheme: dark) {
     #filtroBusca { color-scheme: dark; }
 }

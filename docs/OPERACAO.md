@@ -27,6 +27,8 @@ O protocolo é sequencial e controlado pelo documento `configuracoes/contador_pr
 
 O cargo `tecnico` usa o painel colaborativo com sidebar para abrir, visualizar e atualizar chamados de qualquer categoria e status. Pode separar demandas de TI e manutenção geral, pesquisar e editar prioridade, tipo de OS, instituição e parecer técnico.
 
+Os cards das demandas possuem o botão **Minimizar**. No estado minimizado permanecem visíveis somente o número do protocolo, o nome da escola e o botão **Expandir**. O estado é mantido durante atualizações em tempo real da listagem.
+
 Ao abrir um chamado, a unidade deve ser escolhida na lista mantida pelo supervisor. Técnico e TI podem consultar unidades, mas somente o supervisor pode cadastrá-las.
 
 O campo **Pesquisar escola / unidade** permite digitar parte do nome e selecionar uma opção da lista suspensa. O sistema bloqueia a abertura se o texto não corresponder a uma escola cadastrada.
