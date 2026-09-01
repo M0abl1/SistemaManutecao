@@ -27,6 +27,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Categoria `Limpeza de Caixa d'água` disponível na abertura, edição e pesquisa de chamados.
 - Separação das demandas concluídas entre TI e manutenção geral.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
+- Cards de demandas minimizáveis, mantendo protocolo e escola visíveis; clicar no card o expande novamente e o controle da pesquisa minimiza ou expande todos os cards exibidos pelo filtro atual.
 
 ## Perfis de acesso
 
