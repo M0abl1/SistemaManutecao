@@ -65,7 +65,7 @@
 
         <section class="filtros-relatorio">
             <form id="formRelatorio">
-                <label>Mês de referência
+                <label>Mês de conclusão
                     <select id="mesReferencia">
                         <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
                         <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
@@ -120,7 +120,7 @@
             const anterior = Number(select.value) || agora.getFullYear();
             const anos = new Set([agora.getFullYear(), anterior]);
             demandas.forEach(item => {
-                const data = dataAberturaDemanda(item);
+                const data = converterDataDemanda(item.concluido_em);
                 if (data) anos.add(data.getFullYear());
             });
             select.innerHTML = [...anos].sort((a, b) => b - a).map(ano => `<option value="${ano}">${ano}</option>`).join('');
@@ -198,9 +198,9 @@
             const mes = mesSelecionado();
             const categoria = document.getElementById('categoriaRelatorio').value;
             return demandas.filter(item => {
-                const abertura = dataAberturaDemanda(item);
+                const conclusao = converterDataDemanda(item.concluido_em);
                 const ehTi = String(item.tipo_manutencao || '').trim().toLocaleUpperCase('pt-BR') === 'TI';
-                return chaveMes(abertura) === mes && (categoria === 'ti' ? ehTi : !ehTi);
+                return chaveMes(conclusao) === mes && (categoria === 'ti' ? ehTi : !ehTi);
             });
         }
 
@@ -234,7 +234,7 @@
                 grupos.get(unidade).push(item);
             });
             grupos.forEach(lista => lista.sort((a, b) =>
-                (dataAberturaDemanda(a) || 0) - (dataAberturaDemanda(b) || 0)
+                (converterDataDemanda(a.concluido_em) || 0) - (converterDataDemanda(b.concluido_em) || 0)
             ));
 
             const categoria = document.getElementById('categoriaRelatorio').value === 'ti' ? 'TI' : 'Manutenção geral';
@@ -244,7 +244,7 @@
                 <h2>Relatório de ${escapeHtml(categoria)} — ${escapeHtml(nomeMes(mes))}</h2>
                 <div class="resumo-relatorio">
                     <span><b>Unidade:</b> ${escapeHtml(unidadeSelecionada === 'todas' ? 'Todas as unidades' : unidadeSelecionada)}</span>
-                    <span><b>Total solicitado:</b> ${itens.length}</span>
+                    <span><b>Total finalizado:</b> ${itens.length}</span>
                     <span><b>Concluídas:</b> ${concluidas}</span>
                     <span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span>
                 </div>
