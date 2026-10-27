@@ -219,6 +219,7 @@
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
         import { inicializarCardsMinimizaveis } from '../src/controllers/cardsDemandas.js';
+        import { dataAberturaDemanda, dataIsoLocal } from '../src/infra/datas.js';
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
@@ -466,11 +467,7 @@ if (d.prazo_limite) {
             const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === tipoSelecionado ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
             const prioridadeSelecionada = prioridadeAtual(d.prioridade);
             const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === prioridadeSelecionada ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
-            const dataSolicitacao = (() => {
-                const valor = d.criado_em || d.prazo_limite || '';
-                const data = new Date(String(valor).replace('Solicitado em:', '').trim());
-                return isNaN(data) ? '' : data.toISOString().slice(0, 10);
-            })();
+            const dataSolicitacao = dataIsoLocal(dataAberturaDemanda(d));
             d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
             prazoTexto = escapeHtml(prazoTexto);
             alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);

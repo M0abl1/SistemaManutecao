@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../css/tecnico.css">
     <style>
         .filtros-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:18px}
-        .filtros-relatorio form{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr)) auto auto;gap:12px;align-items:end}
+        .filtros-relatorio form{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto auto;gap:12px;align-items:end}
         .filtros-relatorio label{display:grid;gap:6px}
         .btn-imprimir{border:1px solid var(--primaria);border-radius:7px;padding:11px 15px;background:transparent;color:var(--primaria);font-weight:700;cursor:pointer}
         .cabecalho-relatorio,.unidade-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:16px}
@@ -66,7 +66,15 @@
         <section class="filtros-relatorio">
             <form id="formRelatorio">
                 <label>Mês de referência
-                    <input id="mesReferencia" type="month" required>
+                    <select id="mesReferencia">
+                        <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                        <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                        <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                        <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                    </select>
+                </label>
+                <label>Ano
+                    <select id="anoReferencia"></select>
                 </label>
                 <label>Categoria
                     <select id="categoriaRelatorio">
@@ -91,16 +99,33 @@
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { converterDataDemanda, dataAberturaDemanda } from '../src/infra/datas.js';
 
         const escapeHtml = valor => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
             '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
         }[caractere]));
         const agora = new Date();
-        const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
         let perfilAtual = null;
         let demandas = [];
         const demandaIndividualId = new URLSearchParams(window.location.search).get('demanda');
-        document.getElementById('mesReferencia').value = mesAtual;
+        document.getElementById('mesReferencia').value = String(agora.getMonth() + 1).padStart(2, '0');
+        atualizarAnos();
+
+        function mesSelecionado() {
+            return `${document.getElementById('anoReferencia').value}-${document.getElementById('mesReferencia').value}`;
+        }
+
+        function atualizarAnos() {
+            const select = document.getElementById('anoReferencia');
+            const anterior = Number(select.value) || agora.getFullYear();
+            const anos = new Set([agora.getFullYear(), anterior]);
+            demandas.forEach(item => {
+                const data = dataAberturaDemanda(item);
+                if (data) anos.add(data.getFullYear());
+            });
+            select.innerHTML = [...anos].sort((a, b) => b - a).map(ano => `<option value="${ano}">${ano}</option>`).join('');
+            select.value = String(anterior);
+        }
 
         function htmlAssinaturas() {
             return `<footer class="assinaturas-relatorio" aria-label="Assinaturas do relatório">
@@ -159,29 +184,21 @@
             }
         });
 
-        function converterData(valor) {
-            if (!valor) return null;
-            if (typeof valor.toDate === 'function') return valor.toDate();
-            const texto = String(valor).replace('Solicitado em:', '').trim();
-            const data = new Date(texto);
-            return Number.isNaN(data.getTime()) ? null : data;
-        }
-
         function chaveMes(data) {
             if (!data) return '';
             return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
         }
 
         function formatarData(valor) {
-            const data = converterData(valor);
+            const data = converterDataDemanda(valor);
             return data ? data.toLocaleDateString('pt-BR') : 'Não informada';
         }
 
         function demandasDoPeriodo() {
-            const mes = document.getElementById('mesReferencia').value;
+            const mes = mesSelecionado();
             const categoria = document.getElementById('categoriaRelatorio').value;
             return demandas.filter(item => {
-                const abertura = converterData(item.criado_em || item.prazo_limite);
+                const abertura = dataAberturaDemanda(item);
                 const ehTi = String(item.tipo_manutencao || '').trim().toLocaleUpperCase('pt-BR') === 'TI';
                 return chaveMes(abertura) === mes && (categoria === 'ti' ? ehTi : !ehTi);
             });
@@ -217,11 +234,11 @@
                 grupos.get(unidade).push(item);
             });
             grupos.forEach(lista => lista.sort((a, b) =>
-                converterData(a.criado_em || a.prazo_limite) - converterData(b.criado_em || b.prazo_limite)
+                (dataAberturaDemanda(a) || 0) - (dataAberturaDemanda(b) || 0)
             ));
 
             const categoria = document.getElementById('categoriaRelatorio').value === 'ti' ? 'TI' : 'Manutenção geral';
-            const mes = document.getElementById('mesReferencia').value;
+            const mes = mesSelecionado();
             const concluidas = itens.filter(item => item.status === 'Concluído').length;
             const cabecalho = `<div class="cabecalho-relatorio">${htmlIdentidadeInstitucional()}
                 <h2>Relatório de ${escapeHtml(categoria)} — ${escapeHtml(nomeMes(mes))}</h2>
@@ -244,7 +261,7 @@
                         <tbody>${lista.map(item => `<tr>
                             <td>#${escapeHtml(item.protocolo || '—')}</td>
                             <td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td>
-                            <td>${escapeHtml(formatarData(item.criado_em || item.prazo_limite))}</td>
+                            <td>${escapeHtml(formatarData(dataAberturaDemanda(item)))}</td>
                             <td>${escapeHtml(formatarData(item.concluido_em))}</td>
                             <td>${escapeHtml(item.status || 'Não informado')}</td>
                             <td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td>
@@ -264,7 +281,7 @@
                 <div class="resumo-relatorio"><span><b>Unidade:</b> ${escapeHtml(item.unidade_atendida || 'Não informada')}</span><span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span></div></div>`;
             const conteudo = `<section class="unidade-relatorio"><div class="tabela-container"><table class="tabela-relatorio">
                 <thead><tr><th>Protocolo</th><th>Demanda solicitada</th><th>Data da solicitação</th><th>Data da conclusão</th><th>Status</th><th>Parecer técnico</th></tr></thead>
-                <tbody><tr><td>#${escapeHtml(item.protocolo || '—')}</td><td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td><td>${escapeHtml(formatarData(item.criado_em || item.prazo_limite))}</td><td>${escapeHtml(formatarData(item.concluido_em))}</td><td>${escapeHtml(item.status || 'Não informado')}</td><td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td></tr></tbody>
+                <tbody><tr><td>#${escapeHtml(item.protocolo || '—')}</td><td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td><td>${escapeHtml(formatarData(dataAberturaDemanda(item)))}</td><td>${escapeHtml(formatarData(item.concluido_em))}</td><td>${escapeHtml(item.status || 'Não informado')}</td><td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td></tr></tbody>
             </table></div></section>`;
             document.getElementById('relatorioGerado').innerHTML = cabecalho + conteudo + htmlAssinaturas();
         }
@@ -273,7 +290,10 @@
             onSnapshot(query(collection(db, 'demandas'), orderBy('protocolo', 'desc')), snapshot => {
                 demandas = snapshot.docs.map(item => ({ id:item.id, ...item.data() }));
                 if (demandaIndividualId) renderizarRelatorioIndividual(demandas.find(item => item.id === demandaIndividualId));
-                else renderizarRelatorio(true);
+                else {
+                    atualizarAnos();
+                    renderizarRelatorio(true);
+                }
             }, error => {
                 console.error('Falha ao carregar demandas:', error);
                 mostrarErro(`Falha ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
@@ -285,6 +305,7 @@
             renderizarRelatorio(true);
         });
         document.getElementById('mesReferencia').addEventListener('change', () => renderizarRelatorio(true));
+        document.getElementById('anoReferencia').addEventListener('change', () => renderizarRelatorio(true));
         document.getElementById('categoriaRelatorio').addEventListener('change', () => renderizarRelatorio(true));
         document.getElementById('unidadeRelatorio').addEventListener('change', () => renderizarRelatorio(false));
         document.getElementById('btnImprimir').addEventListener('click', () => window.print());

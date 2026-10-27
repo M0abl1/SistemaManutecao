@@ -89,6 +89,7 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
         import { inicializarCardsMinimizaveis } from '../src/controllers/cardsDemandas.js';
+        import { dataAberturaDemanda, dataIsoLocal } from '../src/infra/datas.js';
 
         const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
         const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
@@ -192,10 +193,7 @@
         }
 
         function dataSolicitacao(demanda) {
-            const valor = demanda.criado_em || demanda.prazo_limite || '';
-            if (typeof valor !== 'string') return '';
-            const data = new Date(valor.replace('Solicitado em:', '').trim());
-            return Number.isNaN(data.getTime()) ? '' : data.toISOString().slice(0, 10);
+            return dataIsoLocal(dataAberturaDemanda(demanda));
         }
 
         function formatarData(demanda) {
