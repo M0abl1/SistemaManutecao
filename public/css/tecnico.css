@@ -37,6 +37,7 @@ input,select,textarea{width:100%;padding:10px;border:1px solid var(--borda);bord
 .btn-excluir{border:1px solid #dc2626;border-radius:7px;padding:10px;background:transparent;color:#dc2626;font-weight:700;cursor:pointer}.btn-excluir:hover{background:#dc2626;color:#fff}
 .estado-lista{text-align:center;color:var(--texto-secundario)}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.aberta{transform:translateX(0)}.sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(15,23,42,.6);opacity:0;visibility:hidden;z-index:90;transition:.2s}.sidebar-backdrop.visivel{opacity:1;visibility:visible}body.menu-mobile-aberto{overflow:hidden}.conteudo-principal{margin-left:0;padding:14px}.btn-toggle{display:block}.barra-busca{grid-template-columns:1fr}.barra-busca button{padding:10px}.acoes-grupo{grid-template-columns:1fr 1fr}.material-os-form{grid-template-columns:1fr}}
+@media(max-width:768px){.escola-card-resumo{order:10;flex:1 1 100%;padding:0;white-space:normal}}
 @media(max-width:520px){.grid-formulario,.grid-edicao{grid-template-columns:1fr}}
 @media(prefers-color-scheme:dark){
     #filtroBusca{color-scheme:dark}
