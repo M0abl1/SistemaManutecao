@@ -7,6 +7,27 @@ export class LoginController {
         this.authModel = new AuthModel();
     }
 
+    // Quem já entrou neste aparelho vai direto para o painel, sem passar pelo botão de login.
+    async retomarSessao() {
+        try {
+            const usuario = await this.authModel.obterUsuarioDaSessao();
+            if (usuario) {
+                this.view.exibirMensagemEspera('Entrando...');
+                const perfil = await this.authModel.obterPerfilUsuario(usuario.uid);
+                const cargoNormalizado = this.normalizarCargo(perfil?.cargo);
+                if (cargoNormalizado) {
+                    Logger.info('LoginController.retomarSessao', 'Sessão existente encontrada');
+                    this.redirecionarPorCargo(cargoNormalizado);
+                    return;
+                }
+            }
+        } catch (error) {
+            Logger.error('LoginController.retomarSessao', 'Não foi possível retomar a sessão', error);
+        }
+        this.view.limparMensagens();
+        this.view.exibirBotaoLogin();
+    }
+
     async iniciarFluxoLogin() {
         this.view.limparMensagens();
         Logger.info('LoginController.iniciarFluxoLogin', 'Clique de login detectado');
@@ -60,7 +81,8 @@ export class LoginController {
 
     redirecionarPorCargo(cargo) {
         Logger.info('LoginController.redirecionarPorCargo', `Redirecionando usuário para tela de ${cargo}`);
-        if (cargo === 'supervisor') window.location.href = 'views/supervisor.html';
-        else window.location.href = 'views/tecnico.html';
+        // replace: o botão Voltar do celular não deve retornar à tela de login.
+        if (cargo === 'supervisor') window.location.replace('views/supervisor.html');
+        else window.location.replace('views/tecnico.html');
     }
 }

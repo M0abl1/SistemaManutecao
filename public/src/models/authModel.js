@@ -1,5 +1,5 @@
 import { db, auth, googleProvider } from '../config/firebase.js';
-import { browserLocalPersistence, setPersistence, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { browserLocalPersistence, onAuthStateChanged, setPersistence, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { Logger } from '../infra/logger.js';
 
@@ -15,6 +15,16 @@ export class AuthModel {
             Logger.error('AuthModel.autenticarComGoogle', 'Falha no popup de autenticação', error);
             throw error;
         }
+    }
+
+    // Resolve com o usuário da sessão salva no aparelho, ou null se não houver login.
+    obterUsuarioDaSessao() {
+        return new Promise((resolve) => {
+            const cancelar = onAuthStateChanged(auth, (user) => {
+                cancelar();
+                resolve(user);
+            });
+        });
     }
 
     // 🟢 FUNÇÃO NOMEADA CORRETAMENTE (Sem o "n" do espanhol)

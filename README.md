@@ -27,6 +27,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Categoria `Limpeza de Caixa d'água` disponível na abertura, edição e pesquisa de chamados.
 - Separação das demandas concluídas entre TI e manutenção geral.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
+- Aplicativo instalável (PWA) no Android e no computador, com abertura sem internet e sincronização automática das alterações feitas offline.
 - Cards de demandas minimizáveis, mantendo protocolo e escola visíveis; clicar no card o expande novamente e o controle da pesquisa minimiza ou expande todos os cards exibidos pelo filtro atual.
 
 ## Perfis de acesso
@@ -45,6 +46,9 @@ Os perfis ficam na coleção `usuarios` do Firestore, vinculados ao UID da conta
 SistemaManutecao/
 ├── public/                    # Raiz publicada pelo Firebase Hosting
 │   ├── index.html             # Tela de login
+│   ├── manifest.webmanifest   # Nome, cores e ícones do app instalável
+│   ├── sw.js                  # Service worker (cache para uso offline)
+│   ├── icons/                 # Ícones do PWA
 │   ├── views/
 │   │   ├── supervisor.html    # Painel de supervisão
 │   │   └── tecnico.html       # Fila técnica e de TI
@@ -53,7 +57,7 @@ SistemaManutecao/
 │       ├── config/firebase.js # Inicialização do Firebase Web
 │       ├── controllers/       # Fluxos de login e supervisão
 │       ├── models/            # Acesso aos dados de autenticação
-│       └── infra/             # Logger
+│       └── infra/             # Logger, datas e registro do PWA
 ├── docs/                      # Documentação técnica e operacional
 ├── firebase.json              # Hosting e referência das regras
 └── firestore.rules            # Regras de segurança versionadas

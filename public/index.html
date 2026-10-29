@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Sistema de Demandas</title>
+    <meta name="theme-color" content="#1e293b">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <script type="module" src="/src/infra/pwa.js"></script>
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
@@ -14,7 +19,7 @@
             <p>Painel Interno de Manutenção</p>
         </div>
 
-        <button class="btn-google" id="btnLogin">
+        <button class="btn-google" id="btnLogin" hidden>
             <!-- SVG do Google omitido aqui para fins de espaço, mantenha o mesmo -->
             Entrar com o Google
         </button>
@@ -33,6 +38,7 @@
         const viewActions = {
             limparMensagens: () => { msgDiv.style.display = 'none'; },
             bloquearBotaoLogin: () => { btnLogin.style.display = 'none'; },
+            exibirBotaoLogin: () => { btnLogin.hidden = false; },
             exibirMensagemEspera: (texto) => {
                 msgDiv.innerText = texto;
                 msgDiv.style.display = 'block';
@@ -53,6 +59,7 @@
         const controller = new LoginController(viewActions);
 
         btnLogin.addEventListener('click', () => controller.iniciarFluxoLogin());
+        controller.retomarSessao();
     </script>
 </body>
 </html>

@@ -1,5 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 // O domínio firebaseapp.com é a origem oficial do helper OAuth deste projeto.
@@ -24,6 +28,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // 4. EXPORTAÇÕES DOS MÓDULOS PARA OS CONTROLLERS/MODELS
-export const db = getFirestore(app);
+// Cache local do Firestore: as telas abrem com os últimos dados mesmo sem rede
+// e as alterações feitas offline são enviadas quando a conexão volta.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
