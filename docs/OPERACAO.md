@@ -59,6 +59,7 @@ O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões oper
 
 ## Sidebar e busca
 
+- **Tela inicial por cargo:** ao entrar, o cargo `ti` abre em **Demandas de TI**, o `tecnico` em **Manutenção geral** e o `supervisor` em **Todas as demandas**. As demais abas continuam disponíveis na sidebar.
 - **Todas as demandas:** remove o filtro de categoria.
 - **Demandas de TI:** mostra somente `tipo_manutencao = TI`.
 - **Manutenção geral:** mostra todas as categorias diferentes de TI.

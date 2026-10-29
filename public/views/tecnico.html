@@ -145,13 +145,24 @@
         });
         document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebar);
 
+        function selecionarFiltroMenu(botao) {
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('ativo'));
+            botao.classList.add('ativo');
+            filtroStatus = botao.dataset.filtroStatus;
+            filtroCategoria = botao.dataset.filtroCategoria;
+            document.getElementById('tituloPagina').textContent = botao.textContent.trim();
+        }
+
+        // Tela inicial por cargo: TI abre nas demandas de TI e os demais na manutenção geral.
+        function selecionarFiltroDoCargo(cargo) {
+            const categoria = normalizar(cargo) === 'ti' ? 'ti' : 'geral';
+            const botao = document.querySelector(`.menu-item[data-filtro-status="todos"][data-filtro-categoria="${categoria}"]`);
+            if (botao) selecionarFiltroMenu(botao);
+        }
+
         document.querySelectorAll('.menu-item[data-filtro-status]').forEach(botao => {
             botao.addEventListener('click', () => {
-                document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('ativo'));
-                botao.classList.add('ativo');
-                filtroStatus = botao.dataset.filtroStatus;
-                filtroCategoria = botao.dataset.filtroCategoria;
-                document.getElementById('tituloPagina').textContent = botao.textContent.trim();
+                selecionarFiltroMenu(botao);
                 renderizarDemandas();
                 fecharSidebar();
             });
@@ -171,6 +182,7 @@
                 const perfil = perfilDoc.data();
                 perfilUsuarioAtual = { uid: user.uid, nome: perfil.nome || user.displayName || 'Usuário', cargo: perfil.cargo };
                 document.getElementById('nomeTecnico').textContent = `${perfilUsuarioAtual.nome} — ${perfilUsuarioAtual.cargo}`;
+                selecionarFiltroDoCargo(perfilUsuarioAtual.cargo);
                 inicializarMateriaisOs({ db, auth, obterPerfil:() => perfilUsuarioAtual, mostrarErro });
                 inicializarUnidades();
                 inicializarDemandas();
