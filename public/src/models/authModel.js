@@ -1,6 +1,6 @@
 import { db, auth, googleProvider } from '../config/firebase.js';
 import { browserLocalPersistence, onAuthStateChanged, setPersistence, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, getDoc, getDocFromCache, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { Logger } from '../infra/logger.js';
 
 export class AuthModel {
@@ -25,6 +25,17 @@ export class AuthModel {
                 resolve(user);
             });
         });
+    }
+
+    // Lê o perfil guardado no aparelho e só consulta o servidor se ele ainda não estiver em cache.
+    async obterPerfilSalvo(uid) {
+        try {
+            const userDoc = await getDocFromCache(doc(db, "usuarios", uid));
+            if (userDoc.exists()) return userDoc.data();
+        } catch (error) {
+            Logger.info('AuthModel.obterPerfilSalvo', 'Perfil fora do cache local, consultando o servidor');
+        }
+        return this.obterPerfilUsuario(uid);
     }
 
     // 🟢 FUNÇÃO NOMEADA CORRETAMENTE (Sem o "n" do espanhol)

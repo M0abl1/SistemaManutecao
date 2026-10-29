@@ -13,13 +13,13 @@
 </head>
 <body>
 
-    <div class="login-card">
+    <div class="login-card" id="cardLogin" hidden>
         <div class="logo-area">
             <h2>Controle de Demandas</h2>
             <p>Painel Interno de Manutenção</p>
         </div>
 
-        <button class="btn-google" id="btnLogin" hidden>
+        <button class="btn-google" id="btnLogin">
             <!-- SVG do Google omitido aqui para fins de espaço, mantenha o mesmo -->
             Entrar com o Google
         </button>
@@ -31,6 +31,7 @@
     // IMPORTANTE: Remova o "../" do início se ele existir, pois a pasta src está ao lado do index.html agora!
     import { LoginController } from './src/controllers/loginController.js';
 
+    const cardLogin = document.getElementById('cardLogin');
     const btnLogin = document.getElementById('btnLogin');
         const msgDiv = document.getElementById('statusMessage');
 
@@ -38,7 +39,7 @@
         const viewActions = {
             limparMensagens: () => { msgDiv.style.display = 'none'; },
             bloquearBotaoLogin: () => { btnLogin.style.display = 'none'; },
-            exibirBotaoLogin: () => { btnLogin.hidden = false; },
+            exibirTelaLogin: () => { cardLogin.hidden = false; },
             exibirMensagemEspera: (texto) => {
                 msgDiv.innerText = texto;
                 msgDiv.style.display = 'block';

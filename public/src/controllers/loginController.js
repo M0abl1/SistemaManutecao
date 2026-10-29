@@ -7,13 +7,13 @@ export class LoginController {
         this.authModel = new AuthModel();
     }
 
-    // Quem já entrou neste aparelho vai direto para o painel, sem passar pelo botão de login.
+    // Quem já entrou neste aparelho vai direto para o painel, sem ver a tela de login.
+    // O painel de destino valida o cargo de novo, por isso o perfil pode vir do cache local.
     async retomarSessao() {
         try {
             const usuario = await this.authModel.obterUsuarioDaSessao();
             if (usuario) {
-                this.view.exibirMensagemEspera('Entrando...');
-                const perfil = await this.authModel.obterPerfilUsuario(usuario.uid);
+                const perfil = await this.authModel.obterPerfilSalvo(usuario.uid);
                 const cargoNormalizado = this.normalizarCargo(perfil?.cargo);
                 if (cargoNormalizado) {
                     Logger.info('LoginController.retomarSessao', 'Sessão existente encontrada');
@@ -25,7 +25,7 @@ export class LoginController {
             Logger.error('LoginController.retomarSessao', 'Não foi possível retomar a sessão', error);
         }
         this.view.limparMensagens();
-        this.view.exibirBotaoLogin();
+        this.view.exibirTelaLogin();
     }
 
     async iniciarFluxoLogin() {

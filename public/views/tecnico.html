@@ -159,7 +159,7 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                mostrarErro('Sessão não encontrada. Entre novamente.');
+                window.location.replace('../index.html');
                 return;
             }
             try {
