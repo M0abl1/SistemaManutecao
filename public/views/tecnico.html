@@ -151,6 +151,14 @@
             filtroStatus = botao.dataset.filtroStatus;
             filtroCategoria = botao.dataset.filtroCategoria;
             document.getElementById('tituloPagina').textContent = botao.textContent.trim();
+            ajustarTipoNovaDemanda(filtroCategoria);
+        }
+
+        // Na aba de TI o novo chamado já nasce como TI; na manutenção geral, nunca como TI.
+        function ajustarTipoNovaDemanda(categoria) {
+            const select = document.getElementById('tipoManutencao');
+            if (categoria === 'ti') select.value = 'TI';
+            else if (categoria === 'geral' && select.value === 'TI') select.selectedIndex = 0;
         }
 
         // Tela inicial por cargo: TI abre nas demandas de TI e os demais na manutenção geral.
@@ -382,6 +390,7 @@
                 });
                 alert(`Chamado #${protocolo} aberto.`);
                 event.target.reset();
+                ajustarTipoNovaDemanda(filtroCategoria);
             } catch (error) {
                 console.error('Erro ao abrir chamado:', error);
                 alert(`Falha ao abrir chamado: ${error.code || 'erro-desconhecido'}`);

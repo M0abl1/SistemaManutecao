@@ -61,7 +61,7 @@ O cargo `ti` usa o mesmo painel colaborativo e possui as mesmas permissões oper
 
 - **Tela inicial por cargo:** ao entrar, o cargo `ti` abre em **Demandas de TI**, o `tecnico` em **Manutenção geral** e o `supervisor` em **Todas as demandas**. As demais abas continuam disponíveis na sidebar.
 - **Todas as demandas:** remove o filtro de categoria.
-- **Demandas de TI:** mostra somente `tipo_manutencao = TI`.
+- **Demandas de TI:** mostra somente `tipo_manutencao = TI`. Com essa aba aberta, o formulário de novo chamado já vem com o tipo **TI** selecionado; em **Manutenção geral**, o tipo TI é trocado pelo primeiro tipo da lista.
 - **Manutenção geral:** mostra todas as categorias diferentes de TI.
 - As filas de status mostram pendentes, em andamento ou canceladas; as concluídas são separadas entre **TI** e **manutenção geral**.
 - Na listagem padrão, pendentes e em andamento aparecem primeiro, dos protocolos mais antigos para os mais novos. Concluídas ficam abaixo e canceladas por último.

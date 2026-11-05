@@ -276,10 +276,18 @@
                 document.getElementById('tituloPagina').innerText = e.currentTarget.innerText;
                 supervisorFiltroCategoria = e.currentTarget.dataset.categoria || 'todas';
                 supervisorFiltroStatus = e.currentTarget.dataset.status || 'todos';
+                ajustarTipoNovaDemanda(supervisorFiltroCategoria);
                 aplicarFiltroBusca();
                 fecharSidebarMobile();
             });
         });
+
+        // Na aba de TI o novo chamado já nasce como TI; na manutenção geral, nunca como TI.
+        function ajustarTipoNovaDemanda(categoria) {
+            const select = document.getElementById('tipoManutencao');
+            if (categoria === 'ti') select.value = 'TI';
+            else if (categoria === 'geral' && select.value === 'TI') select.selectedIndex = 0;
+        }
 
         function fecharSidebarMobile() {
             if (window.matchMedia('(max-width: 768px)').matches) {
@@ -428,6 +436,7 @@
                 });
                 alert(`Chamado aberto com sucesso! Protocolo gerado: #${protocolo}`);
                 e.target.reset();
+                ajustarTipoNovaDemanda(supervisorFiltroCategoria);
                 
             } catch (error) {
                 console.error(error);
