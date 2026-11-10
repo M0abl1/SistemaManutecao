@@ -24,6 +24,7 @@
         .tabela-container{overflow-x:auto}.tabela-relatorio{width:100%;border-collapse:collapse;min-width:950px}
         .tabela-relatorio th,.tabela-relatorio td{padding:10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--borda)}
         .tabela-relatorio th{background:var(--bg-principal);font-size:13px}.tabela-relatorio td{font-size:14px}
+        .tabela-relatorio.tabela-resumo{min-width:0;max-width:520px}.linha-total td{font-weight:800;border-top:2px solid var(--borda)}
         .parecer{white-space:pre-wrap;min-width:230px}.solicitacao{white-space:pre-wrap;min-width:260px}
         .assinaturas-relatorio{display:grid;grid-template-columns:repeat(2,minmax(240px,1fr));gap:70px;margin:70px 20px 20px;padding-top:10px}
         .campo-assinatura{text-align:center;color:var(--texto-principal)}
@@ -70,8 +71,9 @@
 
         <section class="filtros-relatorio">
             <form id="formRelatorio">
-                <label>Mês de conclusão
+                <label>Período de conclusão
                     <select id="mesReferencia">
+                        <option value="anual">Ano inteiro (relatório anual)</option>
                         <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
                         <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
                         <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
@@ -118,6 +120,33 @@
 
         function mesSelecionado() {
             return `${document.getElementById('anoReferencia').value}-${document.getElementById('mesReferencia').value}`;
+        }
+
+        function relatorioAnual() {
+            return document.getElementById('mesReferencia').value === 'anual';
+        }
+
+        const NOMES_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+        // Quadro do relatório anual: quantidade de demandas finalizadas em cada mês do ano.
+        function htmlResumoAnual(itens) {
+            const porMes = NOMES_MESES.map(() => ({ total:0, concluidas:0 }));
+            itens.forEach(item => {
+                const data = converterDataDemanda(item.concluido_em);
+                if (!data) return;
+                porMes[data.getMonth()].total++;
+                if (item.status === 'Concluído') porMes[data.getMonth()].concluidas++;
+            });
+            const totalConcluidas = porMes.reduce((soma, mes) => soma + mes.concluidas, 0);
+            return `<section class="unidade-relatorio">
+                <h3>Resumo mensal</h3>
+                <div class="tabela-container"><table class="tabela-relatorio tabela-resumo">
+                    <thead><tr><th>Mês</th><th>Total finalizado</th><th>Concluídas</th></tr></thead>
+                    <tbody>${porMes.map((mes, indice) => `<tr><td>${NOMES_MESES[indice]}</td><td>${mes.total}</td><td>${mes.concluidas}</td></tr>`).join('')}
+                        <tr class="linha-total"><td>Total do ano</td><td>${itens.length}</td><td>${totalConcluidas}</td></tr>
+                    </tbody>
+                </table></div>
+            </section>`;
         }
 
         function atualizarAnos() {
@@ -201,11 +230,14 @@
 
         function demandasDoPeriodo() {
             const mes = mesSelecionado();
+            const anual = relatorioAnual();
+            const ano = Number(document.getElementById('anoReferencia').value);
             const categoria = document.getElementById('categoriaRelatorio').value;
             return demandas.filter(item => {
                 const conclusao = converterDataDemanda(item.concluido_em);
                 const ehTi = String(item.tipo_manutencao || '').trim().toLocaleUpperCase('pt-BR') === 'TI';
-                return chaveMes(conclusao) === mes && (categoria === 'ti' ? ehTi : !ehTi);
+                const noPeriodo = anual ? Boolean(conclusao) && conclusao.getFullYear() === ano : chaveMes(conclusao) === mes;
+                return noPeriodo && (categoria === 'ti' ? ehTi : !ehTi);
             });
         }
 
@@ -244,9 +276,13 @@
 
             const categoria = document.getElementById('categoriaRelatorio').value === 'ti' ? 'TI' : 'Manutenção geral';
             const mes = mesSelecionado();
+            const anual = relatorioAnual();
+            const titulo = anual
+                ? `Relatório anual de ${categoria} — ${document.getElementById('anoReferencia').value}`
+                : `Relatório de ${categoria} — ${nomeMes(mes)}`;
             const concluidas = itens.filter(item => item.status === 'Concluído').length;
             const cabecalho = `<div class="cabecalho-relatorio">${htmlIdentidadeInstitucional()}
-                <h2>Relatório de ${escapeHtml(categoria)} — ${escapeHtml(nomeMes(mes))}</h2>
+                <h2>${escapeHtml(titulo)}</h2>
                 <div class="resumo-relatorio">
                     <span><b>Unidade:</b> ${escapeHtml(unidadeSelecionada === 'todas' ? 'Todas as unidades' : unidadeSelecionada)}</span>
                     <span><b>Total finalizado:</b> ${itens.length}</span>
@@ -273,7 +309,8 @@
                         </tr>`).join('')}</tbody>
                     </table></div>
                 </section>`).join('');
-            document.getElementById('relatorioGerado').innerHTML = cabecalho + secoes + htmlAssinaturas();
+            const resumo = anual ? htmlResumoAnual(itens) : '';
+            document.getElementById('relatorioGerado').innerHTML = cabecalho + resumo + secoes + htmlAssinaturas();
         }
 
         function renderizarRelatorioIndividual(item) {
