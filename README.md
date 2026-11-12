@@ -16,7 +16,9 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Parecer técnico obrigatório ao concluir ou cancelar uma demanda.
 - Sidebar para todos os perfis, com filas exclusivas de TI e manutenção geral; o cadastro de unidades/setores permanece exclusivo do supervisor.
 - Edição de prioridade, tipo de OS, instituição e parecer técnico diretamente na demanda; o supervisor também pode corrigir o relato original.
-- Busca de demandas por protocolo, escola/unidade em lista suspensa pesquisável, prioridade ou data de solicitação.
+- Busca de demandas por protocolo, escola/unidade em lista suspensa pesquisável, prioridade ou data de solicitação; todas as pesquisas ignoram acentos, maiúsculas e a ordem das palavras.
+- Tipo de serviço exclusivo para demandas de TI (Corretiva, Preventiva, Instalação, Configuração, Outros), com mais de um serviço por demanda e contagem no relatório de TI.
+- Carregamento enxuto: as telas baixam as demandas abertas e só as finalizadas mais recentes, com botão para carregar as antigas.
 - Exclusão de demandas por usuários operacionais, protegida por confirmação explícita e aviso de ação permanente.
 - Página colaborativa de cessão de uso com produto, destinatário, tombo, datas prevista e real, status e estado do bem na devolução.
 - Relatórios mensais e individuais de demandas, com assinaturas do técnico responsável e do ateste de execução, preparados para impressão ou PDF.
@@ -27,6 +29,7 @@ Sistema web para registrar, acompanhar e concluir demandas de manutenção. A ap
 - Categoria `Limpeza de Caixa d'água` disponível na abertura, edição e pesquisa de chamados.
 - Separação das demandas concluídas entre TI e manutenção geral.
 - Exibição para o técnico da prioridade e da solicitação detalhada do supervisor.
+- Aplicativo instalável (PWA) no Android e no computador, com abertura sem internet e sincronização automática das alterações feitas offline.
 - Cards de demandas minimizáveis, mantendo protocolo e escola visíveis; clicar no card o expande novamente e o controle da pesquisa minimiza ou expande todos os cards exibidos pelo filtro atual.
 
 ## Perfis de acesso
@@ -45,17 +48,22 @@ Os perfis ficam na coleção `usuarios` do Firestore, vinculados ao UID da conta
 SistemaManutecao/
 ├── public/                    # Raiz publicada pelo Firebase Hosting
 │   ├── index.html             # Tela de login
+│   ├── manifest.webmanifest   # Nome, cores e ícones do app instalável
+│   ├── sw.js                  # Service worker (cache para uso offline)
+│   ├── icons/                 # Ícones do PWA
 │   ├── views/
 │   │   ├── supervisor.html    # Painel de supervisão
 │   │   └── tecnico.html       # Fila técnica e de TI
 │   ├── css/                   # Estilos das telas
 │   └── src/
 │       ├── config/firebase.js # Inicialização do Firebase Web
-│       ├── controllers/       # Fluxos de login e supervisão
+│       ├── controllers/       # Login, materiais da OS e cards minimizáveis
 │       ├── models/            # Acesso aos dados de autenticação
-│       └── infra/             # Logger
+│       └── infra/             # Demandas, busca, serviços de TI, datas, logger e PWA
 ├── docs/                      # Documentação técnica e operacional
-├── firebase.json              # Hosting e referência das regras
+├── tests/                     # Testes das regras do Firestore (emulador)
+├── package.json               # Scripts de teste e deploy (só desenvolvimento)
+├── firebase.json              # Hosting, emulador e referência das regras
 └── firestore.rules            # Regras de segurança versionadas
 ```
 
@@ -93,10 +101,12 @@ Para liberar um profissional de TI, defina `"cargo": "ti"` no documento `usuario
 Com o Firebase CLI instalado e autenticado, publique o site a partir da pasta do projeto:
 
 ```powershell
+npm install
+npm run test:rules
 npx -y firebase-tools@latest deploy --only hosting,firestore:rules
 ```
 
-O comando publica o conteúdo de `public/` e as regras versionadas. Mantenha as regras restritivas: a interface sozinha não substitui a segurança do banco.
+`npm run test:rules` testa as regras no emulador local (requer Java). O deploy publica o conteúdo de `public/` e as regras versionadas. Mantenha as regras restritivas: a interface sozinha não substitui a segurança do banco.
 
 ## Tecnologias
 
@@ -110,6 +120,7 @@ O comando publica o conteúdo de `public/` e as regras versionadas. Mantenha as 
 - [Configuração e implantação](docs/CONFIGURACAO.md)
 - [Perfis, permissões e operação](docs/OPERACAO.md)
 - [Modelo de dados do Firestore](docs/MODELO_DADOS.md)
+- [Histórico de mudanças](docs/CHANGELOG.md)
 
 ## Validação manual recomendada
 

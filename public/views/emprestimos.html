@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Cessões de Uso</title>
+    <meta name="theme-color" content="#1e293b">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <script type="module" src="/src/infra/pwa.js"></script>
     <link rel="stylesheet" href="../css/tecnico.css">
     <style>
         .lista-emprestimos{display:grid;gap:14px}
@@ -86,11 +91,10 @@
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { correspondeBusca, ativarSugestoesSemAcento } from '../src/infra/busca.js';
+        import { escapeHtml, normalizar } from '../src/infra/demandas.js';
+        ativarSugestoesSemAcento();
 
-        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
-            '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
-        }[caractere]));
-        const normalizar = valor => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const agora = new Date();
         const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
         let perfilAtual = null;
@@ -156,7 +160,7 @@
                     : filtro === 'pessoa' ? item.emprestado_para
                     : filtro === 'tombo' ? item.numero_tombo
                     : `${item.produto} ${item.emprestado_para} ${item.numero_tombo}`;
-                return normalizar(campo).includes(termo);
+                return correspondeBusca(campo, termo);
             });
             const lista = document.getElementById('listaEmprestimos');
             if (!filtrados.length) {

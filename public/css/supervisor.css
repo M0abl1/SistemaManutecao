@@ -165,7 +165,15 @@ input, select, textarea {
 .secao-painel { display: none; }
 .secao-painel.ativa { display: block; }
 
-.grid-edicao-demanda { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+.grid-edicao-demanda { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
+/* Campos do card ocupam a largura disponível sem empurrar o card para fora da tela. */
+.card-demanda input, .card-demanda select, .card-demanda textarea { width: 100%; min-width: 0; }
+.materiais-os { margin-top: 12px; padding: 12px; border: 1px solid var(--borda); border-radius: 8px; background: var(--bg-principal); }
+.materiais-os h4 { margin: 0 0 9px; }
+.material-os-form { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto; gap: 8px; }
+.material-os-form button, .material-usado-item button { border: 0; border-radius: 6px; padding: 8px 10px; background: #475569; color: #fff; cursor: pointer; }
+.material-usado-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--borda); }
+.material-usado-item button { background: #991b1b; padding: 5px 8px; }
 .grid-edicao-demanda label { display: grid; gap: 5px; font-size: 13px; color: var(--texto-secundario); }
 .grid-edicao-demanda .campo-largo { grid-column: 1 / -1; }
 .btn-salvar-edicao { width: 100%; margin-top: 10px; }
@@ -186,7 +194,17 @@ input, select, textarea {
     .sidebar-backdrop.visivel { opacity: 1; visibility: visible; }
     body.menu-mobile-aberto { overflow: hidden; }
     .conteudo-principal { margin-left: 0 !important; padding: 16px; }
-    .grid-edicao-demanda { grid-template-columns: 1fr; }
+    .card { padding: 16px; }
+    .card-demanda { padding: 14px !important; }
+    .barra-busca-supervisor { flex-wrap: wrap; }
+    .barra-busca-supervisor #inputBusca, .barra-busca-supervisor #inputBuscaUnidade { flex: 1 1 140px; min-width: 0; }
+    .barra-busca-supervisor .btn-alternar-todas { flex: 1 1 100%; margin-bottom: 6px; }
+    .acoes-grupo { display: grid !important; grid-template-columns: 1fr 1fr; }
+    .material-os-form { grid-template-columns: minmax(0, 1fr) 80px; }
+    .material-os-form button { grid-column: 1 / -1; }
+    .grid-edicao-demanda { grid-template-columns: minmax(0, 1fr); }
+    /* Nome da escola em linha própria para não ser cortado ao lado do status. */
+    .escola-card-resumo { order: 10; flex: 1 1 100%; padding: 0; white-space: normal; }
     .grid-edicao-demanda .campo-largo { grid-column: auto; }
     .tabela-demandas thead { display: none; }
     .tabela-demandas tr { display: block; background: var(--bg-card); border: 1px solid var(--borda); border-radius: 8px; margin-bottom: 12px; padding: 12px; }

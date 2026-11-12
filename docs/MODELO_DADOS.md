@@ -17,12 +17,14 @@ O identificador do documento deve ser o UID retornado pelo Firebase Authenticati
 | --- | --- | --- | --- |
 | `protocolo` | number | Sim | Número sequencial da demanda |
 | `tipo_manutencao` | string | Sim | Categoria da OS: elétrica, hidráulica, patrimônio, capina, limpeza de caixa d'água, marcenaria, alvenaria, cobertura, serralheria, montagem de mobiliário/equipamentos, geral, outros ou TI |
+| `servicos_ti` | array de string | Só em TI | Exclusivo de demandas de TI: um ou mais entre `Corretiva`, `Preventiva`, `Instalação`, `Configuração` e `Outros`. A interface exige ao menos um ao criar ou salvar uma OS de TI e remove o campo quando o tipo deixa de ser TI |
 | `unidade_atendida` | string | Sim | Unidade ou setor solicitante |
 | `quem_atendido` | string | Não | Pessoa ou local atendido |
 | `prioridade` | string | Sim | `Normal`, `Alta` ou `Crítico` |
 | `descricao` | string | Não | Relato original da solicitação |
 | `status` | string | Sim | `Pendente`, `Em Andamento`, `Concluído` ou `Cancelado` |
-| `prazo_limite` | string ISO 8601 | Sim na tela atual | Data usada como abertura na interface atual |
+| `criado_em` | string ISO 8601 | Sim (demandas novas) | Data de abertura da demanda |
+| `prazo_limite` | string ISO 8601 ou texto `Solicitado em: …` | Legado | Nome antigo da data de abertura. Demandas criadas até novembro de 2026 só têm este campo; as telas leem `criado_em` e, na falta dele, `prazo_limite` (`dataAberturaDemanda` em `public/src/infra/datas.js`). As regras exigem um dos dois |
 | `observacao_tecnico` | string | Sim | Parecer do atendimento; começa vazio |
 | `concluido_em` | string ISO 8601 | Condicional | Gravado ao concluir ou cancelar |
 | `status_alterado_por` | map | Após nova alteração | UID, nome e cargo de quem editou a demanda ou alterou seu status |
@@ -50,6 +52,16 @@ Todos os perfis operacionais podem excluir documentos de `demandas`. A operaçã
 | `ultimo_numero` | number | Último protocolo emitido; incrementado em transação |
 
 Na ausência do documento, a tela do supervisor inicia a sequência em `1000`.
+
+## Consultas usadas pelas telas
+
+Para não baixar a coleção inteira a cada acesso, `assinarDemandas` (`public/src/infra/demandas.js`) combina três consultas em tempo real, nenhuma delas exigindo índice composto:
+
+1. `where('status', 'in', ['Pendente', 'Em Andamento'])` — todas as demandas abertas;
+2. `orderBy('concluido_em', 'desc')` com `limit` — as finalizadas mais recentes;
+3. `orderBy('protocolo', 'desc')` com `limit` — os protocolos mais recentes, cobrindo registros antigos sem `concluido_em`.
+
+O limite começa em 150 e aumenta de 150 em 150 pelo botão **Carregar demandas mais antigas**. O relatório de período lê apenas demandas com `concluido_em`, e o relatório individual lê só o documento pedido.
 
 ## Compatibilidade de dados
 

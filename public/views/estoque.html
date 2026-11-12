@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estoque de Manutenção</title>
+    <meta name="theme-color" content="#1e293b">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <script type="module" src="/src/infra/pwa.js"></script>
     <link rel="stylesheet" href="../css/tecnico.css">
     <style>
         .grade-estoque{display:grid;grid-template-columns:minmax(280px,380px) 1fr;gap:18px}.painel-estoque{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:18px}.painel-estoque h2{margin-bottom:14px}.form-estoque{display:grid;gap:12px}.form-estoque label{display:grid;gap:6px}.acoes-produto{display:flex;gap:8px;flex-wrap:wrap}.lista-produtos{display:grid;gap:10px}.produto-card{border:1px solid var(--borda);border-left:5px solid var(--primaria);border-radius:9px;padding:14px;background:var(--bg-principal)}.produto-card.arquivado{opacity:.65;border-left-color:#64748b}.produto-topo{display:flex;justify-content:space-between;gap:12px}.saldo{font-size:20px;font-weight:800;color:var(--primaria)}.btn-secundario,.btn-perigo{border:0;border-radius:7px;padding:9px 12px;color:#fff;cursor:pointer;font-weight:700}.btn-secundario{background:#475569}.btn-perigo{background:#991b1b}.somente-supervisor[hidden]{display:none!important}.historico-item{padding:10px 0;border-bottom:1px solid var(--borda)}
@@ -42,9 +47,10 @@
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { correspondeBusca, ativarSugestoesSemAcento } from '../src/infra/busca.js';
+        import { escapeHtml, normalizar } from '../src/infra/demandas.js';
+        ativarSugestoesSemAcento();
 
-        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-        const normalizar = valor => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         let perfil = null;
         let produtos = [];
         let movimentacoes = [];
@@ -82,7 +88,7 @@
         function renderizarProdutos(){
             const termo=normalizar(document.getElementById('buscaProduto').value);
             const supervisor=normalizar(perfil?.cargo)==='supervisor';
-            const filtrados=produtos.filter(p=>normalizar(`${p.nome} ${p.codigo}`).includes(termo));
+            const filtrados=produtos.filter(p=>correspondeBusca(`${p.nome} ${p.codigo}`, termo));
             document.getElementById('listaProdutos').innerHTML=filtrados.map(p=>`<article class="produto-card ${p.ativo===false?'arquivado':''}"><div class="produto-topo"><div><strong>${escapeHtml(p.nome)}</strong><br><small>${escapeHtml(p.codigo)}</small></div><span class="saldo">${escapeHtml(p.quantidade)}</span></div>${supervisor?`<div class="acoes-produto"><button class="btn-secundario" data-acao="entrada" data-id="${p.id}">Adicionar saldo</button><button class="btn-perigo" data-acao="arquivar" data-id="${p.id}">${p.ativo===false?'Reativar':'Arquivar'}</button></div>`:''}</article>`).join('') || '<p>Nenhum produto encontrado.</p>';
         }
 

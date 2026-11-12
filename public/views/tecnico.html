@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Colaborativo de Demandas</title>
+    <meta name="theme-color" content="#1e293b">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <script type="module" src="/src/infra/pwa.js"></script>
     <link rel="stylesheet" href="../css/tecnico.css">
 </head>
 <body>
@@ -54,6 +59,7 @@
                         <select id="prioridade" required><option selected>Normal</option><option>Alta</option><option>Crítico</option></select>
                     </label>
                 </div>
+                <div id="servicosTiNovaDemanda"></div>
                 <label>Pesquisar escola / unidade
                     <input id="unidadeAtendida" list="listaEscolas" required autocomplete="off" placeholder="Digite o nome da escola">
                     <datalist id="listaEscolas"></datalist>
@@ -85,27 +91,19 @@
 
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, onSnapshot, doc, getDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
         import { inicializarCardsMinimizaveis } from '../src/controllers/cardsDemandas.js';
+        import { dataAberturaDemanda, dataIsoLocal } from '../src/infra/datas.js';
+        import { TIPOS_OS, PRIORIDADES, ORDEM_PRIORIDADE, escapeHtml, normalizar, prioridadeAtual, tipoOsAtual, classeCorDemanda, grupoStatus, assinarDemandas, htmlCarregarMais } from '../src/infra/demandas.js';
+        import { correspondeBusca, ativarSugestoesSemAcento } from '../src/infra/busca.js';
+        import { ativarServicosTi, htmlServicosTi, lerServicosTi, sincronizarServicosTi, servicosTiDe, textoServicosTi } from '../src/infra/servicosTi.js';
+        import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        ativarSugestoesSemAcento();
+        ativarServicosTi();
+        document.getElementById('servicosTiNovaDemanda').outerHTML = htmlServicosTi([], false);
 
-        const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
-            'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
-        const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
-        const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-        }[caractere]));
-        const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
-        const tipoOsAtual = (valor) => valor === 'Limpeza' ? 'Capina' : valor || 'Geral';
-        const classeCorDemanda = demanda => {
-            if (demanda.status === 'Concluído') return 'demanda-concluida';
-            if (demanda.prioridade === 'Crítico') return 'prioridade-critico';
-            if (demanda.prioridade === 'Alta' || demanda.prioridade === 'Grave') return 'prioridade-grave';
-            return 'prioridade-normal';
-        };
         const optionsHtml = (opcoes, selecionada) => opcoes.map(opcao =>
             `<option value="${escapeHtml(opcao)}" ${opcao === selecionada ? 'selected' : ''}>${escapeHtml(opcao)}</option>`
         ).join('');
@@ -115,6 +113,8 @@
 
         let perfilUsuarioAtual = null;
         let demandas = [];
+        let infoCarregamento = { temMais: false, limite: 0 };
+        let assinaturaDemandas = null;
         const escolasDisponiveis = new Set();
         let filtroStatus = 'todos';
         let filtroCategoria = 'todas';
@@ -139,13 +139,33 @@
         });
         document.getElementById('sidebarBackdrop').addEventListener('click', fecharSidebar);
 
+        function selecionarFiltroMenu(botao) {
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('ativo'));
+            botao.classList.add('ativo');
+            filtroStatus = botao.dataset.filtroStatus;
+            filtroCategoria = botao.dataset.filtroCategoria;
+            document.getElementById('tituloPagina').textContent = botao.textContent.trim();
+            ajustarTipoNovaDemanda(filtroCategoria);
+        }
+
+        // Na aba de TI o novo chamado já nasce como TI; na manutenção geral, nunca como TI.
+        function ajustarTipoNovaDemanda(categoria) {
+            const select = document.getElementById('tipoManutencao');
+            if (categoria === 'ti') select.value = 'TI';
+            else if (categoria === 'geral' && select.value === 'TI') select.selectedIndex = 0;
+            sincronizarServicosTi(document.getElementById('formDemanda'));
+        }
+
+        // Tela inicial por cargo: TI abre nas demandas de TI e os demais na manutenção geral.
+        function selecionarFiltroDoCargo(cargo) {
+            const categoria = normalizar(cargo) === 'ti' ? 'ti' : 'geral';
+            const botao = document.querySelector(`.menu-item[data-filtro-status="todos"][data-filtro-categoria="${categoria}"]`);
+            if (botao) selecionarFiltroMenu(botao);
+        }
+
         document.querySelectorAll('.menu-item[data-filtro-status]').forEach(botao => {
             botao.addEventListener('click', () => {
-                document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('ativo'));
-                botao.classList.add('ativo');
-                filtroStatus = botao.dataset.filtroStatus;
-                filtroCategoria = botao.dataset.filtroCategoria;
-                document.getElementById('tituloPagina').textContent = botao.textContent.trim();
+                selecionarFiltroMenu(botao);
                 renderizarDemandas();
                 fecharSidebar();
             });
@@ -153,7 +173,7 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                mostrarErro('Sessão não encontrada. Entre novamente.');
+                window.location.replace('../index.html');
                 return;
             }
             try {
@@ -165,6 +185,7 @@
                 const perfil = perfilDoc.data();
                 perfilUsuarioAtual = { uid: user.uid, nome: perfil.nome || user.displayName || 'Usuário', cargo: perfil.cargo };
                 document.getElementById('nomeTecnico').textContent = `${perfilUsuarioAtual.nome} — ${perfilUsuarioAtual.cargo}`;
+                selecionarFiltroDoCargo(perfilUsuarioAtual.cargo);
                 inicializarMateriaisOs({ db, auth, obterPerfil:() => perfilUsuarioAtual, mostrarErro });
                 inicializarUnidades();
                 inicializarDemandas();
@@ -192,10 +213,7 @@
         }
 
         function dataSolicitacao(demanda) {
-            const valor = demanda.criado_em || demanda.prazo_limite || '';
-            if (typeof valor !== 'string') return '';
-            const data = new Date(valor.replace('Solicitado em:', '').trim());
-            return Number.isNaN(data.getTime()) ? '' : data.toISOString().slice(0, 10);
+            return dataIsoLocal(dataAberturaDemanda(demanda));
         }
 
         function formatarData(demanda) {
@@ -217,8 +235,8 @@
                 : document.getElementById('inputBusca').value);
             if (!termo) return true;
             if (campo === 'data') return dataSolicitacao(demanda).includes(termo);
-            if (campo === 'unidade') return normalizar(demanda.unidade_atendida).includes(termo);
-            if (campo === 'tipo_manutencao') return normalizar(tipoOsAtual(demanda.tipo_manutencao)).includes(termo);
+            if (campo === 'unidade') return correspondeBusca(demanda.unidade_atendida, termo);
+            if (campo === 'tipo_manutencao') return correspondeBusca(`${tipoOsAtual(demanda.tipo_manutencao)} ${textoServicosTi(demanda)}`, termo);
             return String(demanda.protocolo || '').includes(termo.replace('#', ''));
         }
 
@@ -226,19 +244,16 @@
             const container = document.getElementById('listaOrdens');
             const filtradas = demandas.filter(demandaAtendeFiltros);
             if (document.getElementById('filtroBusca').value === 'prioridade') {
-                const ordemPrioridade = { 'Crítico': 0, 'Alta': 1, 'Normal': 2, 'Média': 2, 'Baixa': 2 };
-                filtradas.sort((a, b) => (ordemPrioridade[a.prioridade] ?? 3) - (ordemPrioridade[b.prioridade] ?? 3)
+                filtradas.sort((a, b) => (ORDEM_PRIORIDADE[a.prioridade] ?? 3) - (ORDEM_PRIORIDADE[b.prioridade] ?? 3)
                     || Number(b.protocolo || 0) - Number(a.protocolo || 0));
             } else {
-                const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
-                    : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
                 filtradas.sort((a, b) => grupoStatus(a.status) - grupoStatus(b.status)
                     || (grupoStatus(a.status) === 0
                         ? Number(a.protocolo || 0) - Number(b.protocolo || 0)
                         : Number(b.protocolo || 0) - Number(a.protocolo || 0)));
             }
             if (!filtradas.length) {
-                container.innerHTML = '<div class="estado-lista">Nenhuma demanda encontrada.</div>';
+                container.innerHTML = '<div class="estado-lista">Nenhuma demanda encontrada.</div>' + htmlCarregarMais(infoCarregamento);
                 return;
             }
             container.innerHTML = filtradas.map(d => {
@@ -254,6 +269,7 @@
                         <label>Tipo de OS<select data-campo="tipo_manutencao">${optionsHtml(TIPOS_OS, tipoOsAtual(d.tipo_manutencao))}</select></label>
                         <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${escapeHtml(d.unidade_atendida)}"></label>
                     </div>
+                    ${htmlServicosTi(servicosTiDe(d), tipoOsAtual(d.tipo_manutencao) === 'TI')}
                     <div class="detalhe"><b>Solicitado em:</b> ${escapeHtml(formatarData(d))}</div>
                     <div class="detalhe"><b>Atendido:</b> ${escapeHtml(d.quem_atendido || 'Não informado')}</div>
                     <div class="caixa-descricao"><b>Solicitação:</b><br>${escapeHtml(d.descricao || 'Sem descrição.')}</div>
@@ -269,19 +285,27 @@
                     </div>
                     <button class="btn-excluir" data-acao="excluir" data-demanda-id="${escapeHtml(d.idDoc)}" data-protocolo="${escapeHtml(d.protocolo)}">Excluir demanda</button>
                 </article>`;
-            }).join('');
+            }).join('') + htmlCarregarMais(infoCarregamento);
             document.dispatchEvent(new Event('demandas-renderizadas'));
         }
 
+        // Carrega as abertas e só as finalizadas mais recentes; "Carregar mais" busca as antigas.
         function inicializarDemandas() {
-            onSnapshot(query(collection(db, 'demandas'), orderBy('protocolo', 'desc')), snapshot => {
-                demandas = snapshot.docs.map(item => ({ idDoc: item.id, ...item.data() }));
-                renderizarDemandas();
-            }, error => {
-                console.error('Erro ao carregar demandas:', error);
-                mostrarErro(`Erro ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
+            assinaturaDemandas = assinarDemandas(db, {
+                aoAtualizar: (lista, info) => {
+                    demandas = lista.map(item => ({ idDoc: item.id, ...item }));
+                    infoCarregamento = info;
+                    renderizarDemandas();
+                },
+                aoErro: error => {
+                    console.error('Erro ao carregar demandas:', error);
+                    mostrarErro(`Erro ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
+                }
             });
         }
+        document.addEventListener('click', event => {
+            if (event.target.closest('[data-carregar-mais-demandas]')) assinaturaDemandas?.carregarMais();
+        });
 
         function dadosEditados(idDoc) {
             const card = document.querySelector(`.card-demanda[data-id="${CSS.escape(idDoc)}"]`);
@@ -290,7 +314,8 @@
                 prioridade: card.querySelector('[data-campo="prioridade"]').value,
                 tipo_manutencao: card.querySelector('[data-campo="tipo_manutencao"]').value,
                 unidade_atendida: card.querySelector('[data-campo="unidade_atendida"]').value.trim(),
-                observacao_tecnico: card.querySelector('[data-campo="observacao_tecnico"]').value.trim()
+                observacao_tecnico: card.querySelector('[data-campo="observacao_tecnico"]').value.trim(),
+                servicos_ti: lerServicosTi(card)
             };
         }
 
@@ -298,6 +323,7 @@
             if (!perfilUsuarioAtual) return;
             const dados = dadosEditados(idDoc);
             if (!dados.unidade_atendida) return alert('Informe a instituição.');
+            if (dados.tipo_manutencao === 'TI' && !dados.servicos_ti.length) return alert('Marque ao menos um tipo de serviço de TI.');
             if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && !dados.observacao_tecnico) {
                 return alert('Preencha o parecer técnico para concluir ou cancelar.');
             }
@@ -306,6 +332,7 @@
                 tipo_manutencao: dados.tipo_manutencao,
                 unidade_atendida: dados.unidade_atendida,
                 observacao_tecnico: dados.observacao_tecnico,
+                servicos_ti: dados.tipo_manutencao === 'TI' ? dados.servicos_ti : deleteField(),
                 status_alterado_por: perfilUsuarioAtual,
                 status_alterado_em: serverTimestamp()
             };
@@ -347,15 +374,19 @@
             if (!perfilUsuarioAtual) return;
             const escolaSelecionada = document.getElementById('unidadeAtendida').value.trim();
             if (!escolasDisponiveis.has(escolaSelecionada)) return alert('Selecione uma escola cadastrada na lista.');
+            const tipoNovo = document.getElementById('tipoManutencao').value;
+            const servicosTi = lerServicosTi(event.target);
+            if (tipoNovo === 'TI' && !servicosTi.length) return alert('Marque ao menos um tipo de serviço de TI.');
             const payload = {
                 tipo_manutencao: document.getElementById('tipoManutencao').value,
                 unidade_atendida: escolaSelecionada,
                 quem_atendido: document.getElementById('quemAtendido').value.trim(),
                 prioridade: document.getElementById('prioridade').value,
                 descricao: document.getElementById('descricao').value.trim(),
-                status: 'Pendente', prazo_limite: new Date().toISOString(), observacao_tecnico: '',
+                status: 'Pendente', criado_em: new Date().toISOString(), observacao_tecnico: '',
                 status_alterado_por: perfilUsuarioAtual, status_alterado_em: serverTimestamp()
             };
+            if (tipoNovo === 'TI') payload.servicos_ti = servicosTi;
             try {
                 let protocolo;
                 await runTransaction(db, async transaction => {
@@ -367,6 +398,7 @@
                 });
                 alert(`Chamado #${protocolo} aberto.`);
                 event.target.reset();
+                ajustarTipoNovaDemanda(filtroCategoria);
             } catch (error) {
                 console.error('Erro ao abrir chamado:', error);
                 alert(`Falha ao abrir chamado: ${error.code || 'erro-desconhecido'}`);
