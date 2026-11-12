@@ -1,5 +1,11 @@
 # Histórico de mudanças
 
+## 2026-11-12 (relatórios)
+
+### Novidades
+- **Ordenação do relatório.** Novos campos **Ordenar escolas por** (nome A→Z/Z→A, mais ou menos demandas, conclusão mais recente) e **Ordenar demandas por** (conclusão ou abertura mais antiga/recente, protocolo crescente/decrescente, prioridade). A escolha aparece no cabeçalho impresso e fica salva no aparelho.
+- Cache do PWA em `v6`.
+
 ## 2026-11-12
 
 ### Novidades

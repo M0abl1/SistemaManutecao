@@ -45,7 +45,14 @@ A sidebar dos painéis possui o botão **Cessão de uso**. Todos os perfis opera
 
 ## Relatórios mensais
 
-A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Entram no relatório as demandas finalizadas (concluídas ou canceladas) no período, pela data de conclusão. No relatório de **TI**, cada linha mostra os serviços marcados (Corretiva, Preventiva, Instalação, Configuração, Outros) e o resumo do topo traz a contagem por serviço. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal. O cabeçalho identifica a Prefeitura Municipal de Santo Estêvão, a Secretaria Municipal de Educação e a Coordenação de Patrimônio e Manutenção. No rodapé da última folha há campos para assinatura do técnico responsável e para o ateste de execução do serviço.
+A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Entram no relatório as demandas finalizadas (concluídas ou canceladas) no período, pela data de conclusão. No relatório de **TI**, cada linha mostra os serviços marcados (Corretiva, Preventiva, Instalação, Configuração, Outros) e o resumo do topo traz a contagem por serviço. A ordem do relatório pode ser escolhida em dois campos:
+
+- **Ordenar escolas por:** nome (A → Z ou Z → A), mais ou menos demandas primeiro, ou conclusão mais recente primeiro.
+- **Ordenar demandas por:** data de conclusão ou de abertura (mais antiga ou mais recente primeiro), número do protocolo (crescente ou decrescente) ou prioridade (Crítico → Alta → Normal).
+
+A ordenação escolhida aparece no cabeçalho do relatório impresso e fica salva no aparelho para os próximos relatórios. O padrão é escolas em ordem alfabética e demandas pela conclusão mais antiga.
+
+O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal. O cabeçalho identifica a Prefeitura Municipal de Santo Estêvão, a Secretaria Municipal de Educação e a Coordenação de Patrimônio e Manutenção. No rodapé da última folha há campos para assinatura do técnico responsável e para o ateste de execução do serviço.
 
 No painel geral do supervisor, o botão **Emitir relatório** de cada card abre o relatório individual daquela demanda, também preparado para impressão ou PDF e com os dois campos de assinatura.
 

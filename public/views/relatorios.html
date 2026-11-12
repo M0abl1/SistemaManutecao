@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="../css/tecnico.css">
     <style>
         .filtros-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:18px}
-        .filtros-relatorio form{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr)) auto auto;gap:12px;align-items:end}
+        .filtros-relatorio form{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:12px;align-items:end}.filtros-relatorio .acoes-relatorio{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
         .filtros-relatorio label{display:grid;gap:6px}
         .btn-imprimir{border:1px solid var(--primaria);border-radius:7px;padding:11px 15px;background:transparent;color:var(--primaria);font-weight:700;cursor:pointer}
         .cabecalho-relatorio,.unidade-relatorio{background:var(--bg-card);border:1px solid var(--borda);border-radius:12px;padding:20px;margin-bottom:16px}
@@ -92,8 +92,30 @@
                 <label>Unidade
                     <select id="unidadeRelatorio"><option value="todas">Todas as unidades</option></select>
                 </label>
-                <button class="btn-criar" type="submit">Emitir relatório</button>
-                <button class="btn-imprimir" id="btnImprimir" type="button">Imprimir / PDF</button>
+                <label>Ordenar escolas por
+                    <select id="ordemEscolas">
+                        <option value="alfabetica">Nome (A → Z)</option>
+                        <option value="alfabetica_desc">Nome (Z → A)</option>
+                        <option value="mais_demandas">Mais demandas primeiro</option>
+                        <option value="menos_demandas">Menos demandas primeiro</option>
+                        <option value="recentes">Conclusão mais recente primeiro</option>
+                    </select>
+                </label>
+                <label>Ordenar demandas por
+                    <select id="ordemDemandas">
+                        <option value="conclusao_antiga">Conclusão mais antiga primeiro</option>
+                        <option value="conclusao_recente">Conclusão mais recente primeiro</option>
+                        <option value="abertura_antiga">Abertura mais antiga primeiro</option>
+                        <option value="abertura_recente">Abertura mais recente primeiro</option>
+                        <option value="protocolo_crescente">Protocolo (menor → maior)</option>
+                        <option value="protocolo_decrescente">Protocolo (maior → menor)</option>
+                        <option value="prioridade">Prioridade (Crítico → Normal)</option>
+                    </select>
+                </label>
+                <div class="acoes-relatorio">
+                    <button class="btn-criar" type="submit">Emitir relatório</button>
+                    <button class="btn-imprimir" id="btnImprimir" type="button">Imprimir / PDF</button>
+                </div>
             </form>
         </section>
 
@@ -108,7 +130,7 @@
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { converterDataDemanda, dataAberturaDemanda } from '../src/infra/datas.js';
         import { SERVICOS_TI, servicosTiDe, textoServicosTi } from '../src/infra/servicosTi.js';
-        import { escapeHtml } from '../src/infra/demandas.js';
+        import { escapeHtml, ORDEM_PRIORIDADE } from '../src/infra/demandas.js';
 
         const agora = new Date();
         let perfilAtual = null;
@@ -258,6 +280,58 @@
             return texto.charAt(0).toLocaleUpperCase('pt-BR') + texto.slice(1);
         }
 
+        // ===== Ordenação do relatório =====
+        const tempo = valor => converterDataDemanda(valor)?.getTime() ?? 0;
+        const porNome = (a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+        const conclusaoMaisRecente = lista => Math.max(0, ...lista.map(item => tempo(item.concluido_em)));
+
+        // Critério das demandas dentro de cada escola; empates caem no protocolo.
+        function comparadorDemandas() {
+            const porProtocolo = (a, b) => Number(a.protocolo || 0) - Number(b.protocolo || 0);
+            const criterios = {
+                conclusao_antiga: (a, b) => tempo(a.concluido_em) - tempo(b.concluido_em),
+                conclusao_recente: (a, b) => tempo(b.concluido_em) - tempo(a.concluido_em),
+                abertura_antiga: (a, b) => tempo(dataAberturaDemanda(a)) - tempo(dataAberturaDemanda(b)),
+                abertura_recente: (a, b) => tempo(dataAberturaDemanda(b)) - tempo(dataAberturaDemanda(a)),
+                protocolo_crescente: porProtocolo,
+                protocolo_decrescente: (a, b) => porProtocolo(b, a),
+                prioridade: (a, b) => (ORDEM_PRIORIDADE[a.prioridade] ?? 3) - (ORDEM_PRIORIDADE[b.prioridade] ?? 3)
+            };
+            const criterio = criterios[document.getElementById('ordemDemandas').value] || criterios.conclusao_antiga;
+            return (a, b) => criterio(a, b) || porProtocolo(a, b);
+        }
+
+        // Critério das escolas (seções do relatório); empates caem no nome.
+        function comparadorEscolas() {
+            const criterios = {
+                alfabetica: () => 0,
+                alfabetica_desc: ([a], [b]) => porNome(b, a),
+                mais_demandas: ([, a], [, b]) => b.length - a.length,
+                menos_demandas: ([, a], [, b]) => a.length - b.length,
+                recentes: ([, a], [, b]) => conclusaoMaisRecente(b) - conclusaoMaisRecente(a)
+            };
+            const criterio = criterios[document.getElementById('ordemEscolas').value] || criterios.alfabetica;
+            return (a, b) => criterio(a, b) || porNome(a[0], b[0]);
+        }
+
+        function textoOrdenacao() {
+            const rotulo = id => document.getElementById(id).selectedOptions[0]?.textContent || '';
+            return `escolas por ${rotulo('ordemEscolas').toLocaleLowerCase('pt-BR')}; demandas por ${rotulo('ordemDemandas').toLocaleLowerCase('pt-BR')}`;
+        }
+
+        // Lembra a ordenação escolhida neste aparelho.
+        ['ordemEscolas', 'ordemDemandas'].forEach(id => {
+            const campo = document.getElementById(id);
+            try {
+                const salvo = localStorage.getItem(`relatorio.${id}`);
+                if (salvo && [...campo.options].some(opcao => opcao.value === salvo)) campo.value = salvo;
+            } catch { /* armazenamento indisponível: usa o padrão */ }
+            campo.addEventListener('change', () => {
+                try { localStorage.setItem(`relatorio.${id}`, campo.value); } catch { /* ignora */ }
+                if (!demandaIndividualId) renderizarRelatorio(false);
+            });
+        });
+
         function renderizarRelatorio(redefinirUnidade = false) {
             const itensPeriodo = demandasDoPeriodo();
             atualizarUnidades(itensPeriodo, redefinirUnidade);
@@ -269,9 +343,7 @@
                 if (!grupos.has(unidade)) grupos.set(unidade, []);
                 grupos.get(unidade).push(item);
             });
-            grupos.forEach(lista => lista.sort((a, b) =>
-                (converterDataDemanda(a.concluido_em) || 0) - (converterDataDemanda(b.concluido_em) || 0)
-            ));
+            grupos.forEach(lista => lista.sort(comparadorDemandas()));
 
             const categoria = document.getElementById('categoriaRelatorio').value === 'ti' ? 'TI' : 'Manutenção geral';
             const mes = mesSelecionado();
@@ -284,6 +356,7 @@
                 <h2>${escapeHtml(titulo)}</h2>
                 <div class="resumo-relatorio">
                     <span><b>Unidade:</b> ${escapeHtml(unidadeSelecionada === 'todas' ? 'Todas as unidades' : unidadeSelecionada)}</span>
+                    <span><b>Ordenação:</b> ${escapeHtml(textoOrdenacao())}</span>
                     <span><b>Total finalizado:</b> ${itens.length}</span>
                     <span><b>Concluídas:</b> ${concluidas}</span>
                     ${categoria === 'TI' ? `<span><b>Serviços de TI:</b> ${SERVICOS_TI.map(servico => `${escapeHtml(servico)}: ${itens.filter(item => servicosTiDe(item).includes(servico)).length}`).join(' · ')}</span>` : ''}
@@ -294,7 +367,7 @@
                 document.getElementById('relatorioGerado').innerHTML = cabecalho + '<div class="estado-lista">Nenhuma demanda encontrada para os filtros selecionados.</div>';
                 return;
             }
-            const secoes = [...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'pt-BR')).map(([unidade, lista]) => `
+            const secoes = [...grupos.entries()].sort(comparadorEscolas()).map(([unidade, lista]) => `
                 <section class="unidade-relatorio">
                     <h3>${escapeHtml(unidade)} — ${lista.length} demanda(s)</h3>
                     <div class="tabela-container"><table class="tabela-relatorio">

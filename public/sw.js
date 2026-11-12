@@ -1,5 +1,5 @@
 // Service worker do PWA. Altere VERSAO ao mudar a lista de arquivos pré-carregados.
-const VERSAO = 'v5';
+const VERSAO = 'v6';
 const CACHE_APP = `manutencao-app-${VERSAO}`;
 const CACHE_SDK = 'manutencao-firebase-sdk';
 
