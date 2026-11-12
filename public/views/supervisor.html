@@ -138,6 +138,7 @@
                             <input type="text" id="quemAtendido" placeholder="Ex: Sala 04 (Opcional)" style="background: var(--bg-principal); color: var(--texto-principal); border: 1px solid var(--borda);">
                         </div>
                     </div>
+                    <div id="servicosTiNovaDemanda"></div>
                     <div class="grid-form">
                         <div class="form-group">
                             <label>Prioridade</label>
@@ -220,33 +221,24 @@
     <!-- SCRIPT DO FIREBASE (Com importação do addDoc inserida) -->
     <script type="module">
         import { db, auth } from '../src/config/firebase.js';
-        import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, query, onSnapshot, doc, getDoc, updateDoc, deleteDoc, addDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { inicializarMateriaisOs } from '../src/controllers/materiaisOs.js';
         import { inicializarCardsMinimizaveis } from '../src/controllers/cardsDemandas.js';
         import { dataAberturaDemanda, dataIsoLocal } from '../src/infra/datas.js';
+        import { STATUS_PERMITIDOS, TIPOS_OS, PRIORIDADES, ORDEM_PRIORIDADE, escapeHtml, normalizar, prioridadeAtual, tipoOsAtual, classeCorDemanda, grupoStatus, assinarDemandas, htmlCarregarMais } from '../src/infra/demandas.js';
+        import { correspondeBusca, ativarSugestoesSemAcento } from '../src/infra/busca.js';
+        import { ativarServicosTi, htmlServicosTi, lerServicosTi, sincronizarServicosTi, servicosTiDe, textoServicosTi } from '../src/infra/servicosTi.js';
+        import { deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        ativarSugestoesSemAcento();
+        ativarServicosTi();
+        document.getElementById('servicosTiNovaDemanda').outerHTML = htmlServicosTi([], false);
 
-        const STATUS_PERMITIDOS = new Set(['Pendente', 'Em Andamento', 'Concluído', 'Cancelado']);
-        const TIPOS_OS = ['Elétrica', 'Hidráulica', 'Patrimônio', 'Capina', "Limpeza de Caixa d'água", 'Marcenaria', 'Alvenaria',
-            'Cobertura (Telhados)', 'Serralheria', 'Montagem de Mobiliário e Equipamentos', 'Geral', 'Outros', 'TI'];
-        const PRIORIDADES = ['Normal', 'Alta', 'Crítico'];
-        const prioridadeAtual = (valor) => valor === 'Baixa' || valor === 'Média' ? 'Normal' : valor || 'Normal';
-        const tipoOsAtual = (valor) => valor === 'Limpeza' ? 'Capina' : valor || 'Geral';
-        const classeCorDemanda = demanda => {
-            if (demanda.status === 'Concluído') return 'demanda-concluida';
-            if (demanda.prioridade === 'Crítico') return 'prioridade-critico';
-            if (demanda.prioridade === 'Alta' || demanda.prioridade === 'Grave') return 'prioridade-grave';
-            return 'prioridade-normal';
-        };
         let perfilUsuarioAtual = null;
         let supervisorFiltroCategoria = 'todas';
         let supervisorFiltroStatus = 'todos';
         inicializarCardsMinimizaveis();
         const escolasDisponiveis = new Set();
-        const escapeHtml = (valor) => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-        }[caractere]));
-        const normalizar = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         document.getElementById('listaBuscaTipos').innerHTML = TIPOS_OS.map(tipo =>
             `<option value="${escapeHtml(tipo)}"></option>`
         ).join('');
@@ -287,6 +279,7 @@
             const select = document.getElementById('tipoManutencao');
             if (categoria === 'ti') select.value = 'TI';
             else if (categoria === 'geral' && select.value === 'TI') select.selectedIndex = 0;
+            sincronizarServicosTi(document.getElementById('formDemanda'));
         }
 
         function fecharSidebarMobile() {
@@ -411,8 +404,11 @@
             e.preventDefault();
             const escolaSelecionada = document.getElementById('unidadeAtendida').value.trim();
             if (!escolasDisponiveis.has(escolaSelecionada)) return alert('Selecione uma escola cadastrada na lista.');
+            const tipoNovo = document.getElementById('tipoManutencao').value;
+            const servicosTi = lerServicosTi(e.target);
+            if (tipoNovo === 'TI' && !servicosTi.length) return alert('Marque ao menos um tipo de serviço de TI.');
             try {
-                // Gera um protocolo numérico aleatório de 6 dígitos
+                // O protocolo é sequencial: reservado na transação abaixo pelo contador em configuracoes/contador_protocolo.
                 const payload = {
                     tipo_manutencao: document.getElementById('tipoManutencao').value,
                     unidade_atendida: escolaSelecionada,
@@ -420,11 +416,12 @@
                     prioridade: document.getElementById('prioridade').value,
                     descricao: document.getElementById('descricao').value,
                     status: "Pendente",
-                    prazo_limite: new Date().toISOString(),
+                    criado_em: new Date().toISOString(),
                     observacao_tecnico: "",
                     status_alterado_por: perfilUsuarioAtual,
                     status_alterado_em: serverTimestamp()
                 };
+                if (tipoNovo === 'TI') payload.servicos_ti = servicosTi;
 
                 let protocolo;
                 await runTransaction(db, async (transaction) => {
@@ -461,33 +458,23 @@
                 alteracaoStatusTexto = `${responsavelStatus.nome} (${responsavelStatus.cargo || 'cargo não informado'})${dataTexto}`;
             }
 
-let prazoTexto = "Não definido";
-if (d.prazo_limite) {
-    if (d.prazo_limite.includes("Solicitado em")) {
-        // Se já for um texto legado, remove a palavra e mostra só a data
-        prazoTexto = d.prazo_limite.replace("Solicitado em:", "").trim();
-    } else {
-        // Se for o formato novo (ISO), converte para o formato brasileiro
-        const dataConvertida = new Date(d.prazo_limite);
-        if (!isNaN(dataConvertida)) {
-            prazoTexto = dataConvertida.toLocaleString('pt-BR');
-        } else {
-            prazoTexto = d.prazo_limite; // Se tudo falhar, exibe o texto puro
-        }
-    }
-}
+            // Data de abertura: criado_em nas demandas novas, prazo_limite nas antigas (inclusive no formato legado).
+            const dataAbertura = dataAberturaDemanda(d);
+            let prazoTexto = dataAbertura ? dataAbertura.toLocaleString('pt-BR') : 'Não definida';
 
             const tipoSelecionado = tipoOsAtual(d.tipo_manutencao);
             const tipoOptions = TIPOS_OS.map(tipo => `<option value="${escapeHtml(tipo)}" ${tipo === tipoSelecionado ? 'selected' : ''}>${escapeHtml(tipo)}</option>`).join('');
             const prioridadeSelecionada = prioridadeAtual(d.prioridade);
             const prioridadeOptions = PRIORIDADES.map(prioridade => `<option value="${escapeHtml(prioridade)}" ${prioridade === prioridadeSelecionada ? 'selected' : ''}>${escapeHtml(prioridade)}</option>`).join('');
             const dataSolicitacao = dataIsoLocal(dataAberturaDemanda(d));
+            const servicosTi = servicosTiDe(d);
+            const servicosTiTexto = escapeHtml(textoServicosTi(d));
             d = Object.fromEntries(Object.entries(d).map(([chave, valor]) => [chave, escapeHtml(valor)]));
             prazoTexto = escapeHtml(prazoTexto);
             alteracaoStatusTexto = escapeHtml(alteracaoStatusTexto);
 
             return `
-                <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-unidade="${d.unidade_atendida || ''}" data-tipo-manutencao="${escapeHtml(tipoSelecionado)}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
+                <div class="card-demanda ${classeCorDemanda(d)}" data-protocolo="${d.protocolo}" data-prioridade="${d.prioridade || ''}" data-status="${d.status || ''}" data-data="${dataSolicitacao}" data-unidade="${d.unidade_atendida || ''}" data-tipo-manutencao="${escapeHtml(tipoSelecionado)} ${servicosTiTexto}" data-servicos-ti-texto="${servicosTiTexto}" data-categoria="${d.tipo_manutencao === 'TI' ? 'ti' : 'geral'}" data-demanda-card="${d.id}">
                     <div class="header-demanda">
                         <span class="protocolo">#${d.protocolo}</span>
                         <span class="escola-card-resumo" title="${d.unidade_atendida || ''}">${d.unidade_atendida || 'Escola não informada'}</span>
@@ -499,6 +486,7 @@ if (d.prazo_limite) {
                         <label>Tipo de OS<select data-campo="tipo_manutencao">${tipoOptions}</select></label>
                         <label class="campo-largo">Instituição<input data-campo="unidade_atendida" maxlength="200" value="${d.unidade_atendida || ''}"></label>
                     </div>
+                    ${htmlServicosTi(servicosTi, tipoSelecionado === 'TI')}
                     <div><b>Atendido:</b> ${d.quem_atendido || 'Não informado'}</div>
                     <div><b>Prioridade:</b> ${d.prioridade || 'Não informada'}</div>
                     <div style="color: var(--texto-secundario, #666);"><b>Data de Abertura:</b> ${prazoTexto}</div>
@@ -532,14 +520,22 @@ if (d.prazo_limite) {
         }
 
         // 🟢 CARREGAR DEMANDAS
+        // Carrega as abertas e só as finalizadas mais recentes; "Carregar mais" busca as antigas.
+        let assinaturaDemandas = null;
         function inicializarTelasSupervisor() {
-            const q = query(collection(db, "demandas"), orderBy("protocolo", "desc"));
-            
-            onSnapshot(q, (snapshot) => {
+            assinaturaDemandas = assinarDemandas(db, { aoAtualizar: renderizarListasSupervisor, aoErro: error => {
+                console.error('Erro ao carregar demandas:', error);
+                mostrarErro(`Erro ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
+            } });
+        }
+        document.addEventListener('click', event => {
+            if (event.target.closest('[data-carregar-mais-demandas]')) assinaturaDemandas?.carregarMais();
+        });
+
+        function renderizarListasSupervisor(lista, infoCarregamento) {
                 let htmlGeral = '', htmlPendentes = '', htmlAndamento = '', htmlConcluidas = '', htmlCanceladas = '';
                 
-                snapshot.forEach(doc => {
-                    const dados = { id: doc.id, ...doc.data() };
+                lista.forEach(dados => {
                     const cardHtml = renderizarCard(dados);
                     
                     htmlGeral += cardHtml;
@@ -554,15 +550,17 @@ if (d.prazo_limite) {
                 document.getElementById('listaAndamento').innerHTML = htmlAndamento || '<p style="color: var(--texto-secundario);">Nenhuma demanda em andamento.</p>';
                 document.getElementById('listaConcluidas').innerHTML = htmlConcluidas || '<p style="color: var(--texto-secundario);">Nenhuma demanda concluída.</p>';
                 document.getElementById('listaCanceladas').innerHTML = htmlCanceladas || '<p style="color: var(--texto-secundario);">Nenhuma demanda cancelada.</p>';
+                // As abertas estão sempre completas; só as listas com finalizadas recebem o "Carregar mais".
+                ['listaGeral', 'listaConcluidas', 'listaCanceladas'].forEach(id => {
+                    document.getElementById(id).insertAdjacentHTML('beforeend', htmlCarregarMais(infoCarregamento));
+                });
                 document.dispatchEvent(new Event('demandas-renderizadas'));
                 aplicarFiltroBusca();
-            });
         }
 
         // 🟢 MUDAR STATUS
         async function salvarDemanda(idDoc, novoStatus = null, cardAtual = null) {
             if (novoStatus && !STATUS_PERMITIDOS.has(novoStatus)) return;
-            if (novoStatus && !confirm(`Alterar o status desta OS para "${novoStatus}"?`)) return;
             const docRef = doc(db, "demandas", idDoc);
             try {
                 if (!perfilUsuarioAtual) return;
@@ -570,10 +568,16 @@ if (d.prazo_limite) {
                 const observacao = card.querySelector('[data-campo="observacao_tecnico"]').value.trim();
                 const unidade = card.querySelector('[data-campo="unidade_atendida"]').value.trim();
                 if (!unidade) return alert('Informe a instituição.');
+                const tipoEditado = card.querySelector('[data-campo="tipo_manutencao"]').value;
+                const servicosTi = lerServicosTi(card);
+                if (tipoEditado === 'TI' && !servicosTi.length) return alert('Marque ao menos um tipo de serviço de TI.');
                 if ((novoStatus === 'Concluído' || novoStatus === 'Cancelado') && !observacao) return alert('Preencha o parecer técnico.');
+                // Confirma só depois de validar, para não pedir confirmação de algo que será recusado.
+                if (novoStatus && !confirm(`Alterar o status desta OS para "${novoStatus}"?`)) return;
                 const payload = {
                     prioridade: card.querySelector('[data-campo="prioridade"]').value,
-                    tipo_manutencao: card.querySelector('[data-campo="tipo_manutencao"]').value,
+                    tipo_manutencao: tipoEditado,
+                    servicos_ti: tipoEditado === 'TI' ? servicosTi : deleteField(),
                     unidade_atendida: unidade,
                     descricao: card.querySelector('[data-campo="descricao"]').value.trim(),
                     observacao_tecnico: observacao,
@@ -632,24 +636,23 @@ if (d.prazo_limite) {
                     : filtro === 'data' ? card.dataset.data
                     : filtro === 'unidade' ? card.dataset.unidade
                     : filtro === 'tipo_manutencao' ? card.dataset.tipoManutencao
-                    : card.textContent;
-                const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : normalizar(campo).includes(termoBusca);
+                    : `${card.textContent} ${card.dataset.servicosTiTexto || ''}`;
+                const buscaValida = modoPrioridade ? card.dataset.status === statusPrioridade : correspondeBusca(campo, termoBusca);
                 card.style.display = categoriaValida && buscaValida ? 'flex' : 'none';
             });
 
-            const ordemPrioridade = { 'Crítico': 0, 'Alta': 1, 'Normal': 2, 'Média': 2, 'Baixa': 2 };
-            const grupoStatus = status => status === 'Pendente' || status === 'Em Andamento' ? 0
-                : status === 'Concluído' ? 1 : status === 'Cancelado' ? 2 : 3;
             ['listaGeral', 'listaPendentes', 'listaAndamento', 'listaConcluidas', 'listaCanceladas'].forEach(id => {
                 const container = document.getElementById(id);
                 const cardsContainer = Array.from(container.children).filter(item => item.classList.contains('card-demanda'));
                 cardsContainer.sort((a, b) => modoPrioridade
-                    ? (ordemPrioridade[a.dataset.prioridade] ?? 3) - (ordemPrioridade[b.dataset.prioridade] ?? 3) || Number(b.dataset.protocolo) - Number(a.dataset.protocolo)
+                    ? (ORDEM_PRIORIDADE[a.dataset.prioridade] ?? 3) - (ORDEM_PRIORIDADE[b.dataset.prioridade] ?? 3) || Number(b.dataset.protocolo) - Number(a.dataset.protocolo)
                     : grupoStatus(a.dataset.status) - grupoStatus(b.dataset.status)
                         || (grupoStatus(a.dataset.status) === 0
                             ? Number(a.dataset.protocolo) - Number(b.dataset.protocolo)
                             : Number(b.dataset.protocolo) - Number(a.dataset.protocolo)));
                 cardsContainer.forEach(card => container.appendChild(card));
+                const rodape = container.querySelector('.carregar-mais-demandas');
+                if (rodape) container.appendChild(rodape);
             });
         }
         document.getElementById('inputBusca').addEventListener('input', aplicarFiltroBusca);

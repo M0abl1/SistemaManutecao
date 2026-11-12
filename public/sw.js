@@ -1,5 +1,5 @@
 // Service worker do PWA. Altere VERSAO ao mudar a lista de arquivos pré-carregados.
-const VERSAO = 'v2';
+const VERSAO = 'v5';
 const CACHE_APP = `manutencao-app-${VERSAO}`;
 const CACHE_SDK = 'manutencao-firebase-sdk';
 
@@ -23,10 +23,12 @@ const ARQUIVOS_APP = [
   '/src/controllers/cardsDemandas.js',
   '/src/controllers/loginController.js',
   '/src/controllers/materiaisOs.js',
-  '/src/controllers/supervisorController.js',
+  '/src/infra/busca.js',
+  '/src/infra/demandas.js',
   '/src/infra/datas.js',
   '/src/infra/logger.js',
   '/src/infra/pwa.js',
+  '/src/infra/servicosTi.js',
   '/src/models/authModel.js'
 ];
 

@@ -1,7 +1,6 @@
 import { collection, doc, onSnapshot, query, orderBy, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-const escapeHtml = valor => String(valor ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const normalizar = valor => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+import { escapeHtml, normalizar } from '../infra/demandas.js';
 
 export function inicializarMateriaisOs({ db, auth, obterPerfil, mostrarErro }) {
     let produtos = [];

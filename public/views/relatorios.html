@@ -107,10 +107,9 @@
         import { collection, query, orderBy, onSnapshot, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { converterDataDemanda, dataAberturaDemanda } from '../src/infra/datas.js';
+        import { SERVICOS_TI, servicosTiDe, textoServicosTi } from '../src/infra/servicosTi.js';
+        import { escapeHtml } from '../src/infra/demandas.js';
 
-        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'\"]/g, caractere => ({
-            '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
-        }[caractere]));
         const agora = new Date();
         let perfilAtual = null;
         let demandas = [];
@@ -287,6 +286,7 @@
                     <span><b>Unidade:</b> ${escapeHtml(unidadeSelecionada === 'todas' ? 'Todas as unidades' : unidadeSelecionada)}</span>
                     <span><b>Total finalizado:</b> ${itens.length}</span>
                     <span><b>Concluídas:</b> ${concluidas}</span>
+                    ${categoria === 'TI' ? `<span><b>Serviços de TI:</b> ${SERVICOS_TI.map(servico => `${escapeHtml(servico)}: ${itens.filter(item => servicosTiDe(item).includes(servico)).length}`).join(' · ')}</span>` : ''}
                     <span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span>
                 </div>
             </div>`;
@@ -301,7 +301,7 @@
                         <thead><tr><th>Protocolo</th><th>Demanda solicitada</th><th>Data da solicitação</th><th>Data da conclusão</th><th>Status</th><th>Parecer técnico</th></tr></thead>
                         <tbody>${lista.map(item => `<tr>
                             <td>#${escapeHtml(item.protocolo || '—')}</td>
-                            <td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td>
+                            <td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b>${textoServicosTi(item) ? ` — ${escapeHtml(textoServicosTi(item))}` : ''}<br>${escapeHtml(item.descricao || 'Sem descrição')}</td>
                             <td>${escapeHtml(formatarData(dataAberturaDemanda(item)))}</td>
                             <td>${escapeHtml(formatarData(item.concluido_em))}</td>
                             <td>${escapeHtml(item.status || 'Não informado')}</td>
@@ -323,23 +323,29 @@
                 <div class="resumo-relatorio"><span><b>Unidade:</b> ${escapeHtml(item.unidade_atendida || 'Não informada')}</span><span><b>Emitido em:</b> ${new Date().toLocaleString('pt-BR')}</span></div></div>`;
             const conteudo = `<section class="unidade-relatorio"><div class="tabela-container"><table class="tabela-relatorio">
                 <thead><tr><th>Protocolo</th><th>Demanda solicitada</th><th>Data da solicitação</th><th>Data da conclusão</th><th>Status</th><th>Parecer técnico</th></tr></thead>
-                <tbody><tr><td>#${escapeHtml(item.protocolo || '—')}</td><td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b><br>${escapeHtml(item.descricao || 'Sem descrição')}</td><td>${escapeHtml(formatarData(dataAberturaDemanda(item)))}</td><td>${escapeHtml(formatarData(item.concluido_em))}</td><td>${escapeHtml(item.status || 'Não informado')}</td><td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td></tr></tbody>
+                <tbody><tr><td>#${escapeHtml(item.protocolo || '—')}</td><td class="solicitacao"><b>${escapeHtml(item.tipo_manutencao || 'Geral')}</b>${textoServicosTi(item) ? ` — ${escapeHtml(textoServicosTi(item))}` : ''}<br>${escapeHtml(item.descricao || 'Sem descrição')}</td><td>${escapeHtml(formatarData(dataAberturaDemanda(item)))}</td><td>${escapeHtml(formatarData(item.concluido_em))}</td><td>${escapeHtml(item.status || 'Não informado')}</td><td class="parecer">${escapeHtml(item.observacao_tecnico || 'Não informado')}</td></tr></tbody>
             </table></div></section>`;
             document.getElementById('relatorioGerado').innerHTML = cabecalho + conteudo + htmlAssinaturas();
         }
 
+        // Relatório individual lê só a demanda pedida; o de período lê só as finalizadas
+        // (as que têm concluido_em), pois é a data de conclusão que define o período.
         function carregarDemandas() {
-            onSnapshot(query(collection(db, 'demandas'), orderBy('protocolo', 'desc')), snapshot => {
-                demandas = snapshot.docs.map(item => ({ id:item.id, ...item.data() }));
-                if (demandaIndividualId) renderizarRelatorioIndividual(demandas.find(item => item.id === demandaIndividualId));
-                else {
-                    atualizarAnos();
-                    renderizarRelatorio(true);
-                }
-            }, error => {
+            const aoErro = error => {
                 console.error('Falha ao carregar demandas:', error);
                 mostrarErro(`Falha ao carregar demandas: ${error.code || 'erro-desconhecido'}`);
-            });
+            };
+            if (demandaIndividualId) {
+                onSnapshot(doc(db, 'demandas', demandaIndividualId), snapshot => {
+                    renderizarRelatorioIndividual(snapshot.exists() ? { id:snapshot.id, ...snapshot.data() } : null);
+                }, aoErro);
+                return;
+            }
+            onSnapshot(query(collection(db, 'demandas'), orderBy('concluido_em', 'desc')), snapshot => {
+                demandas = snapshot.docs.map(item => ({ id:item.id, ...item.data() }));
+                atualizarAnos();
+                renderizarRelatorio(true);
+            }, aoErro);
         }
 
         document.getElementById('formRelatorio').addEventListener('submit', event => {

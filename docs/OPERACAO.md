@@ -16,7 +16,7 @@ O supervisor acessa o painel de gestão e possui visão completa das demandas, i
 
 1. Acesse **Painel Principal**.
 2. Escolha o tipo de manutenção, a unidade, a prioridade e descreva a solicitação.
-3. Para atendimento de tecnologia, escolha **TI**.
+3. Para atendimento de tecnologia, escolha **TI** e marque em **Tipo de serviço de TI** um ou mais serviços: **Corretiva**, **Preventiva**, **Instalação**, **Configuração** ou **Outros**. O campo só aparece para TI e é obrigatório nesse caso; ele também pode ser alterado depois, no card da demanda.
 4. Selecione **Abrir Chamado** e anote o protocolo apresentado.
 
 As categorias disponíveis incluem **Limpeza de Caixa d'água**, **Cobertura (Telhados)**, **Serralheria**, **Montagem de Mobiliário e Equipamentos**, **Geral** e **Outros**, além das categorias existentes.
@@ -29,9 +29,11 @@ O cargo `tecnico` usa o painel colaborativo com sidebar para abrir, visualizar e
 
 Os cards das demandas possuem o botão **Minimizar**. No estado minimizado permanecem visíveis somente o número do protocolo, o nome da escola e o botão **Expandir**. Clicar em qualquer área do card minimizado também o expande. O controle acima da listagem permite minimizar ou expandir de uma vez todas as demandas visíveis no filtro atual. O estado é mantido durante atualizações em tempo real da listagem.
 
+As listas trazem todas as demandas abertas e as finalizadas mais recentes. Para consultar finalizadas antigas, use **Carregar demandas mais antigas** no fim da lista.
+
 Ao abrir um chamado, a unidade deve ser escolhida na lista mantida pelo supervisor. Técnico e TI podem consultar unidades, mas somente o supervisor pode cadastrá-las.
 
-O campo **Pesquisar escola / unidade** permite digitar parte do nome e selecionar uma opção da lista suspensa. O sistema bloqueia a abertura se o texto não corresponder a uma escola cadastrada.
+O campo **Pesquisar escola / unidade** permite digitar parte do nome e selecionar uma opção da lista suspensa. Todas as pesquisas e listas de sugestões ignoram acentos, maiúsculas, pontuação e a ordem das palavras: `angelo`, `ANGELO MAGALHAES` e `magalhães ângelo` encontram "Ângelo Magalhães". O sistema bloqueia a abertura se o texto não corresponder a uma escola cadastrada.
 
 O parecer é obrigatório para concluir ou cancelar uma demanda.
 
@@ -43,7 +45,7 @@ A sidebar dos painéis possui o botão **Cessão de uso**. Todos os perfis opera
 
 ## Relatórios mensais
 
-A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Demandas ainda não concluídas permanecem no relatório com os campos de conclusão não informados. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal. O cabeçalho identifica a Prefeitura Municipal de Santo Estêvão, a Secretaria Municipal de Educação e a Coordenação de Patrimônio e Manutenção. No rodapé da última folha há campos para assinatura do técnico responsável e para o ateste de execução do serviço.
+A opção **Relatórios** está disponível nas sidebars. Selecione o mês, a categoria **TI** ou **Manutenção geral** e, opcionalmente, uma unidade. O relatório agrupa as demandas por escola e apresenta protocolo, solicitação, data de abertura, data de conclusão, status e parecer técnico. Entram no relatório as demandas finalizadas (concluídas ou canceladas) no período, pela data de conclusão. No relatório de **TI**, cada linha mostra os serviços marcados (Corretiva, Preventiva, Instalação, Configuração, Outros) e o resumo do topo traz a contagem por serviço. O botão **Imprimir / PDF** abre a impressão do navegador com layout A4 horizontal. O cabeçalho identifica a Prefeitura Municipal de Santo Estêvão, a Secretaria Municipal de Educação e a Coordenação de Patrimônio e Manutenção. No rodapé da última folha há campos para assinatura do técnico responsável e para o ateste de execução do serviço.
 
 No painel geral do supervisor, o botão **Emitir relatório** de cada card abre o relatório individual daquela demanda, também preparado para impressão ou PDF e com os dois campos de assinatura.
 

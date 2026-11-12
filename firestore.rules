@@ -8,7 +8,8 @@ service cloud.firestore {
     // usuarios/{uid}: nome, email, cargo, criado_em
     // demandas/{id}: protocolo, tipo_manutencao, unidade_atendida,
     //   quem_atendido, prioridade, descricao, status, observacao_tecnico,
-    //   prazo_limite ou criado_em e, opcionalmente, concluido_em
+    //   criado_em (ou o legado prazo_limite) e, opcionalmente, concluido_em;
+    //   servicos_ti apenas em demandas de TI
     // unidades/{id}: nome, endereco, criado_em e, opcionalmente, id_unidade
     // emprestimos/{id}: produto, emprestado_para, numero_tombo,
     //   data_emprestimo, data_devolucao, status, criado_por e criado_em;
@@ -132,7 +133,7 @@ service cloud.firestore {
           'protocolo', 'tipo_manutencao', 'unidade_atendida',
           'quem_atendido', 'prioridade', 'descricao', 'status',
           'observacao_tecnico', 'prazo_limite', 'criado_em', 'concluido_em',
-          'status_alterado_por', 'status_alterado_em'
+          'status_alterado_por', 'status_alterado_em', 'servicos_ti'
         ]) &&
         ('prazo_limite' in data || 'criado_em' in data) &&
         data.protocolo is int && data.protocolo >= 1000 && data.protocolo <= 999999999 &&
@@ -150,7 +151,19 @@ service cloud.firestore {
         validOptionalDemandDate(data, 'prazo_limite') &&
         validOptionalIsoDate(data, 'criado_em') &&
         validOptionalIsoDate(data, 'concluido_em') &&
-        validOptionalStatusAudit(data);
+        validOptionalStatusAudit(data) &&
+        validOptionalServicosTi(data);
+    }
+
+    // servicos_ti: lista exclusiva de demandas de TI, com um ou mais serviços sem repetição.
+    function validOptionalServicosTi(data) {
+      return !('servicos_ti' in data) || (
+        data.tipo_manutencao == 'TI' &&
+        data.servicos_ti is list &&
+        data.servicos_ti.size() >= 1 && data.servicos_ti.size() <= 5 &&
+        data.servicos_ti.toSet().size() == data.servicos_ti.size() &&
+        data.servicos_ti.hasOnly(['Corretiva', 'Preventiva', 'Instalação', 'Configuração', 'Outros'])
+      );
     }
 
     function isValidUnidade(data) {
@@ -288,13 +301,13 @@ service cloud.firestore {
       return isOperational() &&
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'prioridade', 'tipo_manutencao', 'unidade_atendida',
+            'status', 'prioridade', 'tipo_manutencao', 'servicos_ti', 'unidade_atendida',
             'observacao_tecnico', 'concluido_em',
             'status_alterado_por', 'status_alterado_em'
           ]) ||
           (isSupervisor() &&
            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-             'status', 'prioridade', 'tipo_manutencao', 'unidade_atendida',
+             'status', 'prioridade', 'tipo_manutencao', 'servicos_ti', 'unidade_atendida',
              'descricao', 'observacao_tecnico', 'concluido_em',
              'status_alterado_por', 'status_alterado_em'
            ]))

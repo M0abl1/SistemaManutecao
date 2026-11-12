@@ -40,7 +40,14 @@ A filtragem da interface melhora a experiência, mas não é uma barreira de seg
 - confirmar nas regras que a identidade gravada na auditoria corresponde ao usuário autenticado;
 - permitir que apenas supervisores cadastrem unidades e novas demandas.
 
-Após publicar regras novas, valide os três perfis no Rules Playground ou no Emulator Suite. Todos os cargos operacionais consultam a mesma fila ordenada por protocolo; os cargos permanecem registrados para identificação e auditoria.
+As regras têm testes automáticos em `tests/firestore.rules.test.mjs`, executados no emulador do Firestore (requer Node.js 18+ e Java 11+):
+
+```powershell
+npm install
+npm run test:rules
+```
+
+Rode os testes antes de publicar qualquer alteração em `firestore.rules`. Depois de publicar, valide os três perfis no app. Todos os cargos operacionais consultam a mesma fila ordenada por protocolo; os cargos permanecem registrados para identificação e auditoria.
 
 ## Execução local
 
@@ -53,8 +60,11 @@ O repositório mantém `firebase.json` e `firestore.rules` versionados, mas igno
 ```powershell
 npx -y firebase-tools@latest login
 npx -y firebase-tools@latest use <id-do-projeto>
+npm run test:rules
 npx -y firebase-tools@latest deploy --only hosting,firestore:rules
 ```
+
+Ao mudar a lista de arquivos de `public/` ou publicar uma versão que precisa chegar logo aos aparelhos, aumente `VERSAO` em `public/sw.js`.
 
 Revise as regras antes de uma liberação ampla e valide os três perfis depois de cada alteração de autorização.
 

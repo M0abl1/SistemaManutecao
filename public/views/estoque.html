@@ -47,9 +47,10 @@
         import { db, auth } from '../src/config/firebase.js';
         import { collection, query, orderBy, onSnapshot, doc, getDoc, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { correspondeBusca, ativarSugestoesSemAcento } from '../src/infra/busca.js';
+        import { escapeHtml, normalizar } from '../src/infra/demandas.js';
+        ativarSugestoesSemAcento();
 
-        const escapeHtml = valor => String(valor ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-        const normalizar = valor => String(valor || '').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         let perfil = null;
         let produtos = [];
         let movimentacoes = [];
@@ -87,7 +88,7 @@
         function renderizarProdutos(){
             const termo=normalizar(document.getElementById('buscaProduto').value);
             const supervisor=normalizar(perfil?.cargo)==='supervisor';
-            const filtrados=produtos.filter(p=>normalizar(`${p.nome} ${p.codigo}`).includes(termo));
+            const filtrados=produtos.filter(p=>correspondeBusca(`${p.nome} ${p.codigo}`, termo));
             document.getElementById('listaProdutos').innerHTML=filtrados.map(p=>`<article class="produto-card ${p.ativo===false?'arquivado':''}"><div class="produto-topo"><div><strong>${escapeHtml(p.nome)}</strong><br><small>${escapeHtml(p.codigo)}</small></div><span class="saldo">${escapeHtml(p.quantidade)}</span></div>${supervisor?`<div class="acoes-produto"><button class="btn-secundario" data-acao="entrada" data-id="${p.id}">Adicionar saldo</button><button class="btn-perigo" data-acao="arquivar" data-id="${p.id}">${p.ativo===false?'Reativar':'Arquivar'}</button></div>`:''}</article>`).join('') || '<p>Nenhum produto encontrado.</p>';
         }
 
